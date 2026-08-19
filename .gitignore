@@ -1,2 +1,6 @@
 df_clean.pkl
 df_clean.pkl
+.DS_Store
+~$*
+tmp_dict*.pkl
+__pycache__/

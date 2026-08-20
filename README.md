@@ -128,55 +128,61 @@ the search surfaced was promoted to a properly normalized probability density
 and made to compete by maximum likelihood — against the truncated power law,
 stretched cutoffs, the lognormal, and a bounded pure power law — under AIC
 and under **trajectory-blocked two-fold cross-validation** (events from the
-same run are correlated, so runs, not events, are what we split). Figure 1 is
-the result of that trial.
+same run are correlated, so runs, not events, are what we split). Figures
+1–4 walk through the result of that trial, one figure at a time.
 
-![The event-size law](figures/event_law.png)
+![One cell, all fitted laws](figures/fig01_size_law.png)
 
-**Figure 1, panel by panel.**
-
-**(a)** One well-populated cell, with the full range of event sizes — five
-decades — on log-log axes. Black points: the measured density. Red: the
+**Figure 1 — one cell, one distribution, three candidate laws.** A single
+well-populated cell of the state grid, with its full range of event sizes —
+five decades — on log-log axes. Black points: the measured density. Red: the
 discovered ceiling law. Blue dashed: the best truncated power law (TPL).
-Green: the best lognormal. All three are honest maximum-likelihood fits of
-proper densities. The ceiling law is the only one that captures both ends —
-the flattening below s ≈ 3×10⁻⁵ (the ε rounding) *and* the abrupt
-termination at the dotted line (the ceiling s_c), where the TPL's exponential
-tail decays too softly and overshoots. In numbers: on the full range the
-ceiling law beats the TPL by ΔAIC ≈ 200–345 per cell, and at the conventional
-analysis window (s ≥ 10⁻⁴) its free-exponent version wins AIC in **8 of 8**
-well-populated cells (margins 67–120 vs TPL, 300–750 vs lognormal) and wins
-cross-validation in 5 of 8, with the stretched-cutoff TPL close behind in
-the other three.
+Green dotted: the best lognormal. All three are honest maximum-likelihood
+fits of proper densities. The ceiling law is the only one that captures both
+ends — the flattening below s ≈ 3×10⁻⁵ (the ε rounding) *and* the abrupt
+termination at the dotted vertical line (the ceiling s_c), where the TPL's
+exponential tail decays too softly and overshoots. In numbers: on the full
+range the ceiling law beats the TPL by ΔAIC ≈ 200–345 per cell, and at the
+conventional analysis window (s ≥ 10⁻⁴) its free-exponent version wins AIC
+in **8 of 8** well-populated cells (margins 67–120 vs TPL, 300–750 vs
+lognormal) and wins cross-validation in 5 of 8, with the stretched-cutoff
+TPL close behind in the other three.
 
-**(b)** The universality claim in one plot. Every cell's density is replotted
-against the rescaled size ξ = (s+ε)/(s_c+ε), each cell rescaled by *its own
-fitted normalization only* — no per-cell shape freedom. All 12 cells, whose
-raw distributions differ by two orders of magnitude in scale, fall on the
-single black curve (1−ξ)ᵐ ξ⁻ᵏ, including the bend into the ceiling at ξ → 1.
-This is the strongest visual statement of the result: **one shape, one
-state-dependent number.**
+![The collapse](figures/fig02_collapse.png)
 
-**(c)** The discovery process itself, so it can be audited. Each grey line is
-one cell's exact Pareto front: the best achievable misfit at each expression
-complexity. Orange is the largest cell, pushed one complexity unit further
-(4.5M trees). The fronts drop steeply until complexity 8 — where the ceiling
-law enters (arrow) — and gain little beyond. Because the enumeration is
-exhaustive, "the TPL never made a front" is a statement about this grammar
-and this data, not about search luck.
+**Figure 2 — the universality claim in one plot.** Every test cell's density,
+replotted against the rescaled size ξ = (s+ε)/(s_c+ε); each cell contributes
+*its own fitted normalization only* — no per-cell shape freedom. All 12
+cells, whose raw distributions differ by two orders of magnitude in scale,
+fall on the single black curve (1−ξ)ᵐ ξ⁻ᵏ, including the bend into the
+ceiling at ξ → 1. This is the strongest visual statement of the result:
+**one shape, one state-dependent number.**
 
-**(d)** The falsifiability control — the reason to believe (a)–(c) are not a
-pipeline artifact. We generated synthetic catalogs of matched size from a
-*known* TPL (exponential tail) and from a known ceiling law, then ran the
-identical machinery on both. Left column: on TPL data the verdict is TPL,
-five seeds out of five (the ceiling fit betrays its own degeneracy by pinning
-its ceiling to the sample maximum, and the SR knee comes out as
-`log(x) − c·x` — exactly the TPL — with no bounded form in sight). Middle: on
-ceiling-law data the verdict is the ceiling, five of five, with ε and s_c
-recovered to a few percent. Right: the twelve measured catalogs. Eleven sit
-decisively on the ceiling side; one sparse cell is a statistical tie. **The
-discriminator works in both directions, and the data lands on one side of
-it.**
+![Symbolic-regression Pareto fronts](figures/fig03_pareto.png)
+
+**Figure 3 — the discovery process itself, so it can be audited.** Each grey
+line is one cell's exact Pareto front: the best achievable misfit at each
+expression complexity. Orange is the largest cell, pushed one complexity
+unit further (4.5 million trees). The fronts drop steeply until complexity
+8 — where the ceiling law enters (arrow) — and gain little beyond. Because
+the enumeration is exhaustive, "the TPL never made a front" is a statement
+about this grammar and this data, not about search luck.
+
+![Falsifiability control](figures/fig04_falsifiability.png)
+
+**Figure 4 — the verdict cannot be a pipeline artifact.** The falsifiability
+control: synthetic catalogs of matched size were generated from a *known*
+TPL (exponential tail) and from a known ceiling law, and the identical
+machinery was run on both. Each dot is one fitted catalog; height is the AIC
+margin, and points above the line mean the ceiling law wins. Left column: on
+TPL-generated data the verdict is TPL, five seeds out of five (the ceiling
+fit betrays its own degeneracy by pinning its ceiling to the sample maximum,
+and the SR knee comes out as `log(x) − c·x` — exactly the TPL — with no
+bounded form in sight). Middle: on ceiling-law data the verdict is the
+ceiling, five of five, with ε and s_c recovered to a few percent. Right: the
+twelve measured catalogs. Eleven sit decisively on the ceiling side; one
+sparse cell is a statistical tie. **The discriminator works in both
+directions, and the data lands on one side of it.**
 
 ## 5. The law
 
@@ -209,36 +215,40 @@ With the shape frozen, one number per grid cell — the ceiling — was fit by
 maximum likelihood in each of 277 cells (median bootstrap uncertainty 6.5%
 on ln s_c).
 
-![The ceiling field](figures/ceiling_field.png)
+![The ceiling field](figures/fig05_ceiling_map.png)
 
-**Figure 2, panel by panel.**
+**Figure 5 — the ceiling field itself.** The largest possible event, mapped
+over the state plane: it grows from ≈ 0.02 in the cold, low-stress corner to
+≈ 3 at high u and τ — a **146× range**. Read it as a map of fragility: the
+same glass, depending on where it sits in (u,τ), can at most release either
+a tiny flicker of stress or nearly its entire load in one avalanche.
 
-**(a)** The field itself. The largest possible event grows from ≈ 0.02 in the
-cold, low-stress corner to ≈ 3 at high u and τ — a **146× range**. Read it as
-a map of fragility: the same glass, depending on where it sits in (u,τ), can
-at most release either a tiny flicker of stress or nearly its entire load in
-one avalanche.
+![The ceiling's two factors](figures/fig06_ceiling_factors.png)
 
-**(b), (c)** The field is a product: ln s_c(u,τ) = (u-factor) + (τ-factor)
-captures 95.6% of the weighted variance. The panels show the two measured
-factors (points) with the form symbolic regression finds for each (red; same
-exhaustive protocol as Section 4, applied to the factors). The u-factor's
-discovered form contains `exp(0.065/u)` — an activated, Boltzmann-like
-dependence on 1/u, the STZ-flavored structure showing up uninvited in the
-*event-scale* field. The τ-factor is a stiff saturating rise. We display
-these as discovered parameterizations, not established physics: at factor
-level several forms tie within noise — that ambiguity was the central lesson
-of the first pass, and it has not gone away.
+**Figure 6 — the ceiling factorizes.** The field is a product:
+ln s_c(u,τ) = (u-factor) + (τ-factor) captures 95.6% of the weighted
+variance, and the two panels show the two measured factors (points) with the
+form symbolic regression finds for each (red; same exhaustive protocol as
+Section 4, applied to the factors). The u-factor's discovered form contains
+`exp(0.065/u)` — an activated, Boltzmann-like dependence on 1/u, the
+STZ-flavored structure showing up uninvited in the *event-scale* field. The
+τ-factor is a stiff saturating rise. We display these as discovered
+parameterizations, not established physics: at factor level several forms
+tie within noise — that ambiguity was the central lesson of the first pass,
+and it has not gone away.
 
-**(d)** The model's hidden-variable problem, localized. The ceiling was refit
-twice per cell — once from slow-cooled runs only, once from fast-cooled only
-— at the *same* (u,τ). If (u,τ) were a sufficient state, the points would sit
-on the black identity line. They sit above it: median ratio **1.71×** (16–84%
-range 1.14–2.60) across 45 cells, versus 1.13× for a within-ensemble split
-control. Preparation memory, which the first pass detected as a flow-rate
-violation, is now a *parameter of a fitted law*: at identical coarse state,
-the well-annealed glass carries a higher ceiling — bigger maximum avalanches.
-Any candidate third state variable must explain precisely this number.
+![Ceiling memory](figures/fig07_ceiling_memory.png)
+
+**Figure 7 — the model's hidden-variable problem, localized.** The ceiling
+was refit twice per cell — once from slow-cooled runs only, once from
+fast-cooled only — at the *same* (u,τ). If (u,τ) were a sufficient state,
+the points would sit on the black identity line. They sit above it: median
+ratio **1.71×** (16–84% range 1.14–2.60) across 45 cells, versus 1.13× for a
+within-ensemble split control. Preparation memory, which the first pass
+detected as a flow-rate violation, is now a *parameter of a fitted law*: at
+identical coarse state, the well-annealed glass carries a higher ceiling —
+bigger maximum avalanches. Any candidate third state variable must explain
+precisely this number.
 
 ## 7. Rebuilding q from the law
 
@@ -247,41 +257,47 @@ The first pass's central object — the plastic-rate field q(u,τ) — is now a
 mean size with the fitted law's first moment ⟨s⟩ = ∫ s P(s|u,τ) ds, and any
 discrepancy in q is exactly a statement about the law's moment accuracy.
 
-![Rebuilding q](figures/q_reconstruction.png)
+![The two q maps](figures/fig08_q_maps.png)
 
-**Figure 3, panel by panel.**
+**Figure 8 — measured next to rebuilt.** The measured q field (left) beside
+the q field rebuilt from the fitted law (right), on identical color scales.
+They are near-duplicates across the map, including the elastic floor at low
+u and the softening region (q > 1) in the high-u, high-τ corner.
 
-**(a) vs (b)** The measured q field next to the q field rebuilt from the
-fitted law. They are near-duplicates across the map, including the elastic
-floor at low u and the softening region (q > 1) in the high-u, high-τ
-corner.
+![Voxel-by-voxel agreement](figures/fig09_q_agreement.png)
 
-**(c)** The same comparison voxel by voxel, across two decades of q. The
-shaded band is this grid's statistical noise floor (17.5%, split-half
-ensembles). The reconstruction lands at median +1.8%, RMS 17% — **the fitted
-law reproduces the plastic-rate field to within the data's own noise.**
-There is no headroom left; a better law could not score better on this test.
+**Figure 9 — the same comparison, voxel by voxel.** Each dot is one grid
+cell, across two decades of q. The shaded band is this grid's statistical
+noise floor (17.5%, from split-half ensembles). The reconstruction lands at
+median +1.8%, RMS 17% — **the fitted law reproduces the plastic-rate field
+to within the data's own noise.** There is no headroom left; a better law
+could not score better on this test.
 
-**(d)** Where the ceiling matters and where it doesn't. Model mean sizes
-against measured ones, for both fitted laws. The TPL (blue) nails first
-moments almost by construction — at fixed exponent, fitting its scale s* *is*
-moment-matching, an accounting identity rather than evidence for the
-exponential tail. The ceiling law (red) earns its moments from a shape chosen
-by per-event likelihood: unbiased, with ~17% scatter. Mean-level quantities
-cannot discriminate the two tails — which is exactly why Section 4 argued at
-the per-event level.
+![First moments](figures/fig10_moments.png)
 
-**(e), (f)** The first pass's factor analysis, run twice — once on measured q
-(black), once on model-rebuilt q (red). Both factorize at 96%; the factors
-lie on top of each other; and symbolic regression, run independently on each
-version, returns the **same functional knee with nearly the same constants**.
-For f(τ): τ·log(1/τ − 0.44) from measured q vs τ·log(1/τ − 0.43) from the
-model. For Λ(u): a form with a **pole at u = 0.0287** (measured) vs
-u = 0.0280 (model) — a divergence of plastic activity sitting just past the
-edge of the sampled range (largest u-bin center 0.0275) and just above the
-attractor the dynamics heads toward (u ≈ 0.0255; Figure 4d). The first
-pass's downstream analytic structure is fully recoverable from the fitted
-event law; none of it depended on measuring q directly.
+**Figure 10 — where the ceiling matters and where it doesn't.** Model mean
+sizes against measured ones, for both fitted laws. The TPL (blue) nails
+first moments almost by construction — at fixed exponent, fitting its scale
+s* *is* moment-matching, an accounting identity rather than evidence for the
+exponential tail. The ceiling law (red) earns its moments from a shape
+chosen by per-event likelihood: unbiased, with ~17% scatter. Mean-level
+quantities cannot discriminate the two tails — which is exactly why Section
+4 argued at the per-event level.
+
+![The q factors from both fields](figures/fig11_q_factors.png)
+
+**Figure 11 — the first pass's factor analysis, run twice.** Once on
+measured q (black), once on model-rebuilt q (red). Both factorize at 96%;
+the factors lie on top of each other; and symbolic regression, run
+independently on each version, returns the **same functional knee with
+nearly the same constants**. For f(τ), right panel: τ·log(1/τ − 0.44) from
+measured q vs τ·log(1/τ − 0.43) from the model. For Λ(u), left panel: a
+form with a **pole at u = 0.0287** (measured) vs u = 0.0280 (model) — a
+divergence of plastic activity sitting just past the edge of the sampled
+range (largest u-bin center 0.0275) and just above the attractor the
+dynamics heads toward (u ≈ 0.0255; Figure 15). The first pass's downstream
+analytic structure is fully recoverable from the fitted event law; none of
+it depended on measuring q directly.
 
 ## 8. The acid test: simulating all 850 runs
 
@@ -294,42 +310,49 @@ ways: sizes from the ceiling law, sizes from the fitted TPL, and sizes
 resampled from the raw per-voxel catalogs (the "cheating" arm — as well as
 any size model could possibly do here).
 
-![Forward simulation](figures/forward_sim.png)
+![Simulated stress-strain](figures/fig12_sim_stress.png)
 
-**Figure 4, panel by panel.**
+**Figure 12 — the stress–strain curves, predicted.** Ensemble curves for all
+nine preparations (color = cooling rate): MD solid, model dashed. The model
+reproduces the elastic rise, the ordering and height of the stress
+overshoot across a 256× range of cooling rate, the post-yield decay, and
+the flow plateau (flow stresses at γ = 0.5 within ±5%). None of these
+curves was fit directly — they emerge from fields measured at the
+single-step level.
 
-**(a)** Ensemble stress–strain curves for all nine preparations (color =
-cooling rate): MD solid, model dashed. The model reproduces the elastic
-rise, the ordering and height of the stress overshoot across a 256× range of
-cooling rate, the post-yield decay, and the flow plateau (flow stresses at
-γ = 0.5 within ±5%). None of these curves was fit directly — they emerge
-from fields measured at the single-step level.
+![Simulated energy curves](figures/fig13_sim_energy.png)
 
-**(b)** The same comparison for the energy coordinate u(γ). The model is
-good early and visibly too *convergent* late: the dashed curves pinch
-together faster than the data's. Keep this panel in mind for (d).
+**Figure 13 — the energy coordinate, and the first crack.** The same
+comparison for u(γ). The model is good early and visibly too *convergent*
+late: the dashed curves pinch together faster than the data's — the real
+curves keep a 23.7% spread at γ = 0.5 where the simulation keeps only 4%.
+Keep this figure in mind for Figure 15.
 
-**(c)** The 850 yield peaks — the distribution of maximum stress per run, by
-preparation. Black: MD. The three simulation arms bracket the data:
+![The yield peaks](figures/fig14_sim_peaks.png)
+
+**Figure 14 — the 850 yield peaks.** The distribution of maximum stress per
+run, by preparation. Black: MD. The three simulation arms bracket the data:
 empirical resampling at 0.9% RMS, TPL at 1.4%, ceiling law at 2.5% (worst
 single rate 4.3%). Two honest readings. First, the model predicts the
-yield-strength distribution of a glass from its preparation history to a few
-percent. Second, the *differences between size laws are smaller than the
-differences between preparations* — macroscopic observables feel only the
-law's mean, so they are the wrong place to identify tail shape (Section 4's
-per-event likelihood is the right place).
+yield-strength distribution of a glass from its preparation history to a
+few percent. Second, the *differences between size laws are smaller than
+the differences between preparations* — macroscopic observables feel only
+the law's mean, so they are the wrong place to identify tail shape (Section
+4's per-event likelihood is the right place).
 
-**(d)** What the model says about the question the data cannot answer: no MD
-run reached steady state by γ = 0.5. Run 4× further, the model's nine
-preparations converge onto a common attractor u∞ ≈ 0.0255 by γ ≈ 1, the
-preparation spread shrinking from 4.0% to 2.6%. **Treat this as the model's
-opinion, not as evidence**: its fields are preparation-blind by construction
-(one shared map for all histories), so eventual convergence is baked in. The
-data's own verdict is panel (b): the real u(γ) curves keep a 23.7% spread at
-γ = 0.5 where the simulation keeps only 4% — the same missing state variable
-as Figure 2d, seen macroscopically. This, quantitatively, is the model's
-failure mode, and it is the strongest argument in this repository for runs
-past γ = 0.5 and for a third state variable.
+![Extrapolating past the data](figures/fig15_sim_extrapolation.png)
+
+**Figure 15 — the model run 4× past the data.** What the model says about
+the question the data cannot answer: no MD run reached steady state by
+γ = 0.5. Run further, the model's nine preparations converge onto a common
+attractor u∞ ≈ 0.0255 by γ ≈ 1, the preparation spread shrinking from 4.0%
+to 2.6%. **Treat this as the model's opinion, not as evidence**: its fields
+are preparation-blind by construction (one shared map for all histories),
+so eventual convergence is baked in. The data's own verdict is Figure 13 —
+the 5×-too-small u-spread is the same missing state variable as Figure 7,
+seen macroscopically. This, quantitatively, is the model's failure mode,
+and it is the strongest argument in this repository for runs past γ = 0.5
+and for a third state variable.
 
 ## 9. The modeling choices, and why
 
@@ -357,7 +380,7 @@ past γ = 0.5 and for a third state variable.
    are by whole trajectory, as in the first pass.
 6. **Global (k, m, ε), local s_c.** Justified three ways: the fitted
    exponents are flat across cells (k spread ±0.05); the collapse in
-   Fig. 1b works with all shape freedom removed; and the rank-1 structure
+   Fig. 2 works with all shape freedom removed; and the rank-1 structure
    of s_c says the one local parameter is itself low-dimensional. Refitting
    ε per cell moves it ±2× with no AIC gain — kept global.
 7. **m decoupled from k.** SR's complexity budget first delivered the law
@@ -377,22 +400,22 @@ past γ = 0.5 and for a third state variable.
 10. **Three simulation arms.** The empirical-resampling arm bounds what any
     size law could achieve; the TPL arm is the ablation. Differences between
     arms measure how much the law's *form* matters for each observable —
-    which is how Fig. 4c can honestly conclude "peaks don't discriminate
+    which is how Fig. 14 can honestly conclude "peaks don't discriminate
     tails" instead of over-claiming a win.
 
 ## 10. What holds, what doesn't
 
 | claim | status |
 |---|---|
-| Event sizes follow one universal shape with a single state-dependent scale | **supported** (Fig. 1b: 12 cells spanning 100× in scale collapse) |
+| Event sizes follow one universal shape with a single state-dependent scale | **supported** (Fig. 2: 12 cells spanning 100× in scale collapse) |
 | The large-size cutoff is a hard ceiling, sharper than exponential | **supported where testable** (8/8 AIC, synthetic controls pass both directions); degenerate in sparse cells |
 | Small-size exponent k ≈ 0.9 | **supported**, ±0.1 window systematic |
 | Ceiling exponent m ≈ 2 | order-of-magnitude only |
 | The ceiling field factorizes; its u-factor is activated-like | factorization **supported** (96%); the specific factor forms are best-of-front, not unique |
-| The fitted law reproduces the plastic-rate field q | **at the noise floor** (Fig. 3c) — this test is saturated |
-| The fitted model reproduces stress–strain curves and yield peaks across 256× in cooling rate | **supported**, few-percent level (Fig. 4a,c) |
-| (u,τ) is a sufficient state | **contradicted, again, independently**: 1.71× ceiling memory (Fig. 2d) and 5×-underpredicted u-spread (Fig. 4b,d) |
-| Steady state / convergence of preparations | not in the data; the model's convergence prediction (Fig. 4d) is structurally baked in — needs longer runs |
+| The fitted law reproduces the plastic-rate field q | **at the noise floor** (Fig. 9) — this test is saturated |
+| The fitted model reproduces stress–strain curves and yield peaks across 256× in cooling rate | **supported**, few-percent level (Figs. 12, 14) |
+| (u,τ) is a sufficient state | **contradicted, again, independently**: 1.71× ceiling memory (Fig. 7) and 5×-underpredicted u-spread (Figs. 13, 15) |
+| Steady state / convergence of preparations | not in the data; the model's convergence prediction (Fig. 15) is structurally baked in — needs longer runs |
 
 **Next, in order of value:** (1) longer strain runs — every open question
 above touches γ > 0.5; (2) the system size N, ideally a second size, to test
@@ -408,7 +431,7 @@ reverse loading, unchanged from the first pass.
 | [library/dist.py](library/dist.py) | normalized-MLE machinery: candidate densities, AIC, trajectory-blocked CV, moments, sampling |
 | [library/stz.py](library/stz.py), [library/avalanche.py](library/avalanche.py) | first-pass field extraction and TPL fitting (kept for comparison) |
 | [REPORT.md](REPORT.md) | first-pass technical report (measured-field route + STZ scrutiny) |
-| figures/event_law.png, ceiling_field.png, q_reconstruction.png, forward_sim.png | this pass (Figures 1–4) |
+| figures/fig01 … fig15 | this pass (Figures 1–15, one plot per figure) |
 | figures/state_sufficiency.png … steady_state.png | first pass |
 
 Raw data (`df_clean.pkl`, 2.4 GB) is not distributed with the repository.

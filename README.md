@@ -135,7 +135,9 @@ same run are correlated, so runs, not events, are what we split). Figures
 
 **Figure 1 — one cell, one distribution, three candidate laws.** A single
 well-populated cell of the state grid, with its full range of event sizes —
-five decades — on log-log axes. Black points: the measured density. Red: the
+five decades — on log-log axes. The inset locates that cell (red box) on the
+dataset's probability density over the (u,τ) plane, at the well-sampled
+high-u ridge. Black points: the measured density. Red: the
 discovered ceiling law. Blue dashed: the best truncated power law (TPL).
 Green dotted: the best lognormal. All three are honest maximum-likelihood
 fits of proper densities. The ceiling law is the only one that captures both

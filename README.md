@@ -1,305 +1,414 @@
-# SEEM: discovering the equations of glassy plasticity
+# SEEM — a fitted law for yield events, and everything rebuilt from it
 
-This repository contains a data-driven search for a **constitutive model** — the
-equation relating stress, deformation, and internal state — of a simulated glass,
-together with an adversarial test of the leading theory in the field (the
-shear-transformation-zone, or STZ, theory) and a statistical map of the yield
-events themselves. This README is a ~10-minute overview that builds from basics.
-The full technical detail lives in [REPORT.md](REPORT.md), and a slide version in
-`SEEM_project_deck.pptx`.
+This is the second pass over the SEEM dataset, and it inverts the logic of the
+first. Last time we *measured* the plastic response of the glass voxel by voxel
+and asked what functions describe the measurements. This time we go after the
+project's original target directly: **the probability distribution of yield
+events**. We fit one law for the event statistics — with the functional form
+*discovered by symbolic regression, not assumed* — and then re-derive every
+downstream quantity (mean event sizes, the plastic-rate field, its factor
+structure, and finally full synthetic stress–strain curves for all 850
+simulations) **from the fitted law**, side by side with the directly measured
+version of each quantity. Where the two versions agree, the law is carrying the
+physics. Where they disagree, we say so.
+
+The first-pass technical report ([REPORT.md](REPORT.md)) and its figures are
+unchanged and still valid; this document supersedes the old README.
 
 ---
 
-## 1. The question
+## 1. The data, briefly
 
-When you bend a metal past its elastic limit, we know what happens microscopically:
-crystal defects called dislocations glide through the lattice, and a century of
-theory turns that picture into predictive equations. **Glasses have no lattice**, so
-they have no dislocations — yet they still yield, flow, and harden. Their plasticity
-happens through localized rearrangements: small clusters of atoms that suddenly
-snap from one packing to another.
+850 athermal quasistatic (AQS) shear trajectories of a model glass: strain is
+applied in steps of Δγ = 10⁻⁵ up to γ = 0.5 (49,999 steps each), with the
+system energy-minimized at every step. Nine preparation histories — cooling
+rates from 2×10¹⁰ to 5.12×10¹² K/s in factors of two — with 100 runs each (50
+at the fastest). Each step records the shear stress and the per-atom potential
+energy: 42.5 million rows total.
 
-What's missing is the *equation of motion* for this process — a constitutive law
-you could hand to an engineer. The best-developed candidate is **STZ theory**
-(Falk & Langer, 1998), which postulates that flow is carried by a sparse population
-of "shear-transformation zones" whose abundance is controlled by an **effective
-temperature**: not the thermal temperature, but a measure of how much disorder is
-frozen into the structure.
+In AQS dynamics every strain step is one of two things: a smooth **elastic**
+increment, or a discontinuous **event** (a plastic rearrangement). That
+dichotomy is not a modeling choice, it is what the algorithm does — which is
+why the model below has the structure it has.
 
-This project asks three things:
+## 2. The variables, all in one place
 
-1. Can we **discover** the constitutive law directly from simulation data, using
-   symbolic regression, rather than postulating it?
-2. Does what we find **support or contradict STZ theory**? (A disclosure that
-   shapes everything below: this work comes from the lab where STZ theory was
-   invented, so pro-STZ findings were deliberately subjected to extra scrutiny.)
-3. What are the **statistics of the individual yield events** — and could a map of
-   that "event landscape" let us describe global yield behavior analytically?
-
-## 2. The data
-
-The dataset is 850 molecular-dynamics simulations of a model glass being sheared,
-in the cleanest protocol available: **athermal quasistatic (AQS)** shear. Shear the
-box by a tiny increment (10⁻⁵ strain), let every atom settle into mechanical
-equilibrium, record, repeat — 49,999 times per sample, out to 50% strain. There is
-no thermal noise and no rate dependence; every stress drop is a genuine mechanical
-instability.
-
-Crucially, the samples were prepared at **nine different cooling rates** spanning
-2×10¹⁰ to 5×10¹² K/s. Cooling rate is to a glass what aging is to cheese: cool
-slowly and you get a deep, stable, well-annealed structure; quench fast and you
-freeze in a sloppy, high-energy one. This gives us nine materially different
-starting points for the *same* substance — the key lever for testing whether a
-candidate law is really a law.
-
-Each snapshot reduces to two numbers: the shear stress τ and the packing energy u
-(both defined precisely in the glossary below).
-
-![Preparation phenomenology and the state-sufficiency test](figures/state_sufficiency.png)
-
-**Panel (a)** shows the ensemble stress–strain curves: an elastic ramp, then — for
-well-annealed samples only — a stress *overshoot* before settling toward steady
-flow. Slower cooling ⇒ higher peak (1.96 vs 1.30 in our units): the material
-remembers its preparation. **Panel (b)** shows u climbing during shear for all nine
-preparations: deformation "reheats" the structure toward a common band. Note that
-none of the curves has flattened by the end of the run — this matters later.
-(Panels (c) and (d) are explained in §5 and §8.)
-
-## 3. The variables, all in one place
-
-| Symbol | Plain reading |
+| symbol | plain reading |
 |---|---|
-| **γ** | Applied shear strain — the "time" axis of every plot; runs 0 → 0.5. |
-| **τ** | Shear stress (raw stress / 10⁴, in simulation units). |
-| **u** | Potential energy per atom above the reference u₀ — *how badly packed the structure is*. The stand-in for STZ theory's effective temperature. |
-| **u₀** | The reference energy the dataset measures u against. Derived from the data itself, not independently known — an important systematic (§7). |
-| **χ\*** | The steady-flow attractor of u: the disorder level that sustained shearing drives every sample toward (≈ 0.026–0.031, extrapolated; §9). |
-| **û = u/χ\*** | u on a 0-to-1 scale; û ≈ 1 means fully rejuvenated. |
-| **2μ(u,τ)** | Elastic stiffness: stress gained per unit strain on the smooth stretches between events. |
-| **q(u,τ)** | Plastic fraction: of the strain just applied, the share that went into permanent rearrangement. 0 = purely elastic, 1 = steady flow, >1 = softening. |
-| **Λ(u), f(τ)** | The two factors of q ≈ Λ·f — the energy-dependence and stress-dependence of plasticity, separated (§5). |
-| **e_Z** | If Λ is activated (Boltzmann-like), the fitted formation energy of a flow defect (≈ 0.056 per-atom energy units). |
-| **λ(u,τ)** | Event rate: how many yield events fire per unit strain from a given state. |
-| **s** | Avalanche size: the stress released by one yield event, s = −Δτ. |
-| **κ** | The universal power-law exponent of avalanche sizes (≈ 0.95; §10). |
-| **s\*(u,τ)** | The avalanche ceiling: the largest event size a given state typically produces (§10). |
-| **γ_p** | Accumulated plastic strain — a candidate third state variable (§8). |
-| **ρ₀** | Where a preparation starts: the initial distribution of samples over (u, τ). |
+| γ | applied shear strain; one step = 10⁻⁵ |
+| τ | shear stress (raw stress ÷ 10⁴, the lab convention) |
+| u | per-atom potential energy above a reference: u = pe − u₀, with u₀ = −4.60752 taken from the dataset. High u = poorly annealed, "young" glass |
+| (u, τ) | the two-coordinate **state** of a run; all fields below live on a 20×20 grid over this plane |
+| 2μ(u,τ) | elastic modulus: the slope dτ/dγ on elastic steps (≈ 20 in these units) |
+| event, s | a step where stress drops; its **size** s = −Δτ. 187,468 of them in the dataset, spanning s ≈ 10⁻⁶ to 1.16 |
+| aging event | a step where energy drops but stress does not (105,188 of them, 36% of all events); they relax u without releasing stress |
+| p(u,τ) | event **hazard**: probability per step that an event fires (median ≈ 0.3%/step) |
+| P(s \| u,τ) | the size distribution — *the object this whole pass is about* |
+| k | the law's small-size exponent: P(s) ∼ s⁻ᵏ for small s. Fitted k = 0.88 |
+| s_c(u,τ) | the **ceiling**: the largest event the state (u,τ) can produce. The law's only state-dependent parameter |
+| m | the ceiling exponent: P(s) vanishes like (s_c − s)ᵐ at the ceiling. Fitted m = 2.3 |
+| ε | a tiny rounding scale (≈ 3×10⁻⁵) below which the power law flattens; resolution-limited |
+| ξ | rescaled size (s+ε)/(s_c+ε): in this variable every cell has the *same* distribution |
+| q(u,τ) | plastic fraction of the strain rate: q = 1 − (dτ/dγ)/2μ. 0 = purely elastic, 1 = steady flow |
+| Λ(u), f(τ) | the two factors of q ≈ Λ(u)·f(τ) (and analogously for ln s_c) |
+| "rank-1" | how much of a field's (log) variance a product of one-variable factors captures — 96% for q, 96% for s_c |
 
-## 4. Why the obvious approach fails
+## 3. The model: three measured fields and one law to discover
 
-The naive plan: fit an equation dτ/dγ = F(u, τ) to the 42 million recorded steps.
-This fails spectacularly (R² ≈ 0.0005), and understanding why shapes everything
-downstream. Glassy deformation is **smooth elastic loading interrupted by rare,
-violent avalanches** — the strain-rate signal spans five orders of magnitude, and
-least squares chases the avalanches while ignoring the physics in between.
+Because AQS is literally "drift, then jump", the generative model is fixed by
+the dynamics itself; the only scientific freedom is in the ingredients:
 
-The fix is to stop regressing and start *measuring*, after splitting the dynamics
-into parts that each behave well: the elastic stiffness 2μ from the smooth
-segments, and the plastic fraction
+1. **Elastic drift** — τ rises at 2μ(u,τ), u drifts slightly; both measured
+   directly from elastic steps.
+2. **When events fire** — the hazard p(u,τ), measured as a per-voxel event
+   fraction.
+3. **How big they are** — P(s | u,τ), *the part we fit*, plus a linear
+   coupling giving the energy change per event and an exponential model for
+   the (small) aging channel.
 
-**q(u, τ) = 1 − (dτ/dγ) / 2μ**
+Everything is tabulated on a 20×20 grid over (u,τ) (equal-width bins between
+the 0.2% and 99.8% quantiles, plus a catch-all outer ring so a simulation can
+never step off the map). Ingredient 3 is where the physics lives, and it is
+the one we refused to write down by hand.
 
-which has clean limits and is O(1) everywhere.
+## 4. Finding the form: exhaustive symbolic regression
 
-One more habit adopted throughout: **measure the noise floor before fitting
-anything.** Splitting identically-prepared samples in half and comparing gives an
-11.3% floor; per-cell statistical error is 8.7%. Any model that "fits" better than
-the floor is memorizing noise — this rule ends up doing a lot of work below.
+**Expect this component to draw the most scrutiny, so here is exactly what was
+done.** The search uses [library/symreg.py](library/symreg.py), a purpose-built
+engine with one deliberate property: for one-variable targets it does not
+sample the space of formulas, it **enumerates all of them** up to a complexity
+budget, so "the search did not find X" is a checkable statement, not a claim
+about luck.
 
-## 5. What q looks like — and a lucky break
+**The target.** For a given grid cell (a narrow window of u and τ, inside
+which the state is effectively constant), take all its event sizes, bin them
+in 19 logarithmic bins, and form the log-density ln ρ(s) with Poisson error
+bars (1/√count per bin). The regression target is y = ln ρ(s) vs x = s.
 
-Panel (d) of the first figure maps q over the (u, τ) plane. It behaves like a
-constitutive field should: near zero in the cold/unloaded corner, rising toward 1
-at flow, monotone in both variables. And it has one big structural simplicity —
-it **factorizes**:
+**The grammar.** Expressions are trees built from x, fitted constants, six
+unary operators (exp, log, 1/·, (·)², √, −) and four binary ones (+, −, ×, ÷).
+Each expression may carry at most two internal constants, fitted by
+Levenberg–Marquardt with 4 restarts, while the outer scale and offset
+a·f(x)+b are solved in closed form (variable projection) — so every candidate
+is optimized, not just evaluated. Transcendentals cost 2 complexity units,
+everything else 1, which makes the search prefer plain algebra unless the
+data insists otherwise.
 
-**q(u, τ) ≈ Λ(u) · f(τ)**
+**The scale.** At complexity ≤ 8, the enumeration visits **624,936 trees per
+target**; a numerical fingerprint (invariant to the outer scale/offset,
+evaluated on a log-spaced probe so behavior at small s is not aliased)
+collapses these to ~14,000 genuinely distinct functions, of which ~10,300
+survive the admissibility filter (finite and monotonically decreasing over
+the fit window). This was run on **12 cells** spread over the (u,τ) grid
+(4 orders of magnitude in event size, 700–7,600 events each), plus four
+variants — two cells re-run with unweighted bins and two with the fit window
+extended toward smaller sizes — to expose the two systematics that dominated
+form-selection in the first pass. One **deep run at complexity ≤ 9 enumerated
+4,505,024 trees** (68,305 distinct, 48,725 admissible) on the largest cell to
+check that nothing qualitatively new appears with more budget. It doesn't.
 
-like a surface built from a row profile times a column profile. A rank-1 model
-captures 96% of the variation in log q. That splits the discovery problem into two
-one-dimensional ones: Λ(u), how plasticity grows as the structure gets
-configurationally hotter (26-fold across our range), and f(τ), how stress
-activates rearrangements (~30-fold).
+**What came out.** Every one of the 16 fronts tells the same story. The
+canonical truncated power law s⁻ᵏe^(−s/s*) — which sits *inside* this search
+space at complexity 7 — **never appears on a single Pareto front**. What
+recurs instead, across cells, weightings, and windows, is the structure
+`log(1/(s+ε) − C)`, which algebra rearranges into
 
-In STZ language, Λ is proportional to the population of shear-transformation
-zones, and f is the stress-driven rate at which each one fires. The factorized
-form is itself an STZ prediction, so finding it empirically is the first
-substantive point on the theory's scoreboard.
+$$\rho(s) \;\propto\; \frac{(s_c-s)^{m}}{(s+\varepsilon)^{k}},\qquad 0<s<s_c$$
 
-## 6. Machine-discovering the equations
+a power-law decay that does not fade out exponentially but **terminates at a
+finite ceiling s_c**, just above the largest observed event. Physically that
+is a finite-size statement: a finite simulation cell has a largest possible
+stress release, and the data are near enough to it to see it.
 
-With two clean 1-D targets, we used **symbolic regression**: instead of fitting
-coefficients in a fixed formula, search over the *space of formulas themselves*
-(sums, products, powers, exponentials, logs...) for the best trade-off between
-accuracy and simplicity. Because each target has only ~10–20 well-measured points,
-we could afford **exhaustive enumeration** — every expression up to a complexity
-bound, with constants optimized inside nonlinearities — rather than a stochastic
-genetic search. Physics constraints (positivity, monotonicity) are hard filters:
-inadmissible formulas are discarded, not penalized. The engine is
-[library/symreg.py](library/symreg.py), validated on synthetic problems with known
-answers before touching real data.
+**Symbolic regression proposes; likelihood disposes.** Binned least squares is
+a blunt instrument — it over-weights the crowded small-size bins, and one
+seductive low-complexity form it produced, √log(c/s), turned out to be pure
+binning artifact (likelihood demolished it at ΔAIC ≈ +20,000). So every form
+the search surfaced was promoted to a properly normalized probability density
+and made to compete by maximum likelihood — against the truncated power law,
+stretched cutoffs, the lognormal, and a bounded pure power law — under AIC
+and under **trajectory-blocked two-fold cross-validation** (events from the
+same run are correlated, so runs, not events, are what we split). Figure 1 is
+the result of that trial.
 
-![Discovered forms and the generalization test](figures/symbolic_regression.png)
+![The event-size law](figures/event_law.png)
 
-**Panels (a, b):** at the accuracy-vs-simplicity sweet spot, both factors come out
-**activated** — Boltzmann-like:
+**Figure 1, panel by panel.**
 
-Λ(û) ≈ 11.6·exp(−1.79/û) + 0.086,  f(τ) ≈ 43.6·exp(−4.57/τ) + 0.19
+**(a)** One well-populated cell, with the full range of event sizes — five
+decades — on log-log axes. Black points: the measured density. Red: the
+discovered ceiling law. Blue dashed: the best truncated power law (TPL).
+Green: the best lognormal. All three are honest maximum-likelihood fits of
+proper densities. The ceiling law is the only one that captures both ends —
+the flattening below s ≈ 3×10⁻⁵ (the ε rounding) *and* the abrupt
+termination at the dotted line (the ceiling s_c), where the TPL's exponential
+tail decays too softly and overshoots. In numbers: on the full range the
+ceiling law beats the TPL by ΔAIC ≈ 200–345 per cell, and at the conventional
+analysis window (s ≥ 10⁻⁴) its free-exponent version wins AIC in **8 of 8**
+well-populated cells (margins 67–120 vs TPL, 300–750 vs lognormal) and wins
+cross-validation in 5 of 8, with the stretched-cutoff TPL close behind in
+the other three.
 
-This is exactly STZ's central object: zone abundance ∝ exp(−formation energy /
-effective temperature). The search was not told to look for it — it emerged from
-~4,600 admissible candidate expressions.
+**(b)** The universality claim in one plot. Every cell's density is replotted
+against the rescaled size ξ = (s+ε)/(s_c+ε), each cell rescaled by *its own
+fitted normalization only* — no per-cell shape freedom. All 12 cells, whose
+raw distributions differ by two orders of magnitude in scale, fall on the
+single black curve (1−ξ)ᵐ ξ⁻ᵏ, including the bend into the ceiling at ξ → 1.
+This is the strongest visual statement of the result: **one shape, one
+state-dependent number.**
 
-**Panels (c, d)** show the test that matters: train on the seven slowest cooling
-rates, predict the two fastest — preparations the model has never seen. The
-discovered 5-parameter model does as well as a 15-parameter polynomial (30.7% vs
-32.4% error) — and the polynomial's seemingly stellar training error (5.7%, *below
-the noise floor*) is pure memorization. Simple, physically-shaped models
-extrapolate; flexible ones flatter you on training data and betray you off it.
+**(c)** The discovery process itself, so it can be audited. Each grey line is
+one cell's exact Pareto front: the best achievable misfit at each expression
+complexity. Orange is the largest cell, pushed one complexity unit further
+(4.5M trees). The fronts drop steeply until complexity 8 — where the ceiling
+law enters (arrow) — and gain little beyond. Because the enumeration is
+exhaustive, "the TPL never made a front" is a statement about this grammar
+and this data, not about search luck.
 
-## 7. The stress test
+**(d)** The falsifiability control — the reason to believe (a)–(c) are not a
+pipeline artifact. We generated synthetic catalogs of matched size from a
+*known* TPL (exponential tail) and from a known ceiling law, then ran the
+identical machinery on both. Left column: on TPL data the verdict is TPL,
+five seeds out of five (the ceiling fit betrays its own degeneracy by pinning
+its ceiling to the sample maximum, and the SR knee comes out as
+`log(x) − c·x` — exactly the TPL — with no bounded form in sight). Middle: on
+ceiling-law data the verdict is the ceiling, five of five, with ε and s_c
+recovered to a few percent. Right: the twelve measured catalogs. Eleven sit
+decisively on the ceiling side; one sparse cell is a statistical tie. **The
+discriminator works in both directions, and the data lands on one side of
+it.**
 
-Because a pro-STZ result from this lab would be suspect, we ran a pre-specified
-battery of robustness checks: different statistical weightings, different modulus
-estimators, restricted data ranges, shifted energy references, hundreds of
-bootstrap resamples.
+## 5. The law
 
-![Scrutiny results](figures/stz_scrutiny.png)
+$$\boxed{\;P(s \mid u,\tau) \;=\; \frac{1}{Z}\,\frac{\bigl(s_c(u,\tau)-s\bigr)^{m}}{(s+\varepsilon)^{k}}\,,\qquad
+k = 0.88,\quad m = 2.3,\quad \varepsilon = 2.8\times10^{-5}\;}$$
 
-The outcome is genuinely mixed, and the mix is the finding:
+Three global constants; **all** dependence on state — and, Section 6, on
+preparation history — enters through the single ceiling field s_c(u,τ). The
+law needs no lower cutoff: ε lets it describe every recorded event down to
+s = 10⁻⁶.
 
-- **Robust:** the *family* of the laws. Growth-exponentials and sinh forms lose in
-  every single variant, for both Λ and f. The shape is a floor plus a stiff rise —
-  that much is settled.
-- **Not robust:** the *distinction between* the activated form exp(−c/u) and a
-  plain power law uⁿ. It flips with the extraction weighting (panel a: the same
-  data supports either) and with a small shift in the energy zero-point u₀ —
-  which is dataset-derived, not independently measured. Verdict: **undecidable at
-  current systematics.** The honest scoreboard: activated wins 7 of 9 weighted
-  variants; the power law wins 97–99% of bootstraps on the unweighted pipeline.
-- **A clean negative:** if you *do* adopt the activated form, its barrier
-  parameter should be a material constant. It isn't — it drifts ±25% across the
-  nine preparations, far outside statistical error (panel c).
+Stated at the confidence each piece deserves:
 
-## 8. The most important result is negative
+- **Solid.** A power-law size regime with k ≈ 0.9, and a large-size
+  termination *sharper than exponential* wherever the statistics can tell
+  the difference. Both survive reweighting, window changes, cross-validation,
+  and the synthetic controls.
+- **Softer.** The exact exponents move with fitting window: k ∈ [0.85, 1.03],
+  m ∈ [1.6, 2.7] across treatments. (Symbolic regression's complexity budget
+  first delivered the law with m tied to k; likelihood then demanded the
+  decoupling, m > k.) In sparse cells m and s_c degenerate toward the
+  exponential-tail limit — a ceiling needs events near it to be visible.
+- **Open.** A hard ceiling begs to be a finite-size effect, and its scaling
+  with system size N is the natural test — but N is not recorded in this
+  dataset. Worth chasing.
 
-That barrier drift is a symptom of something bigger, shown back in **panel (c) of
-the first figure**: take the slowest-cooled and fastest-cooled ensembles and find
-moments where they sit at *identical* (u, τ). They flow at rates differing by a
-factor of ~1.7 — consistently, across every well-populated cell, at 4.5× the noise
-floor.
+## 6. The ceiling field s_c(u,τ)
 
-Two glasses with the same energy and the same stress behave differently. **The
-pair (u, τ) is not a complete description of the material's state** — the glass
-remembers more of its history than these two numbers capture. Adding accumulated
-plastic strain γ_p as a third variable absorbs about a third of the discrepancy;
-the rest points at candidates we cannot test with this dataset: directional
-internal stresses ("back-stress" — which is, notably, the very variable STZ theory
-includes and we had to omit), or spatial localization of the flow.
+With the shape frozen, one number per grid cell — the ceiling — was fit by
+maximum likelihood in each of 277 cells (median bootstrap uncertainty 6.5%
+on ln s_c).
 
-This means no two-variable constitutive law — STZ-form or otherwise — can be exact
-for this system. It bounds what any equation on this repository's state space can
-achieve (~25–50% depending on preparation spread), and the discovered model
-already sits at that bound.
+![The ceiling field](figures/ceiling_field.png)
 
-## 9. The missing endpoint: steady state
+**Figure 2, panel by panel.**
 
-One more structural caveat. Every preparation is still relaxing when the
-simulations end at 50% strain:
+**(a)** The field itself. The largest possible event grows from ≈ 0.02 in the
+cold, low-stress corner to ≈ 3 at high u and τ — a **146× range**. Read it as
+a map of fragility: the same glass, depending on where it sits in (u,τ), can
+at most release either a tiny flicker of stress or nearly its entire load in
+one avalanche.
 
-![Steady-state extrapolation](figures/steady_state.png)
+**(b), (c)** The field is a product: ln s_c(u,τ) = (u-factor) + (τ-factor)
+captures 95.6% of the weighted variance. The panels show the two measured
+factors (points) with the form symbolic regression finds for each (red; same
+exhaustive protocol as Section 4, applied to the factors). The u-factor's
+discovered form contains `exp(0.065/u)` — an activated, Boltzmann-like
+dependence on 1/u, the STZ-flavored structure showing up uninvited in the
+*event-scale* field. The τ-factor is a stiff saturating rise. We display
+these as discovered parameterizations, not established physics: at factor
+level several forms tie within noise — that ambiguity was the central lesson
+of the first pass, and it has not gone away.
 
-Fitting the approach to steady state (left: dashed extrapolations, using the
-relaxation form the theory itself predicts) says the slowest-cooled samples still
-have ~11% of their journey left, and full convergence needs runs 2–3× longer.
-Worse (right): the **extrapolated endpoints don't meet** — a 10% spread remains.
-Either the relaxation has slower-than-exponential tails, or different preparations
-genuinely flow toward different steady states, which would be a second, deeper
-violation of effective-temperature theory. Current data cannot tell these apart.
+**(d)** The model's hidden-variable problem, localized. The ceiling was refit
+twice per cell — once from slow-cooled runs only, once from fast-cooled only
+— at the *same* (u,τ). If (u,τ) were a sufficient state, the points would sit
+on the black identity line. They sit above it: median ratio **1.71×** (16–84%
+range 1.14–2.60) across 45 cells, versus 1.13× for a within-ensemble split
+control. Preparation memory, which the first pass detected as a flow-rate
+violation, is now a *parameter of a fitted law*: at identical coarse state,
+the well-annealed glass carries a higher ceiling — bigger maximum avalanches.
+Any candidate third state variable must explain precisely this number.
 
-## 10. The yield events themselves
+## 7. Rebuilding q from the law
 
-Everything above concerns *averages* — the mean response of the material. The
-project's original goal was the **distributions**: the statistics of the
-individual yield events, the avalanches that make up the serrated curves. Mapping
-them turned out to compress remarkably well, into four findings:
+The first pass's central object — the plastic-rate field q(u,τ) — is now a
+*derived* quantity: hazard × mean event size ÷ modulus. Replace the measured
+mean size with the fitted law's first moment ⟨s⟩ = ∫ s P(s|u,τ) ds, and any
+discrepancy in q is exactly a statement about the law's moment accuracy.
 
-**One event = one number.** Each event drops both the stress and the energy, and
-the two drops are locked together (R² = 0.90, tighter still near flow): the energy
-released is proportional to the stress released. So an avalanche is characterized
-by a single size, s — the stress it lets go of.
+![Rebuilding q](figures/q_reconstruction.png)
 
-**One law for the sizes.** At every point of the state space, sizes follow the
-same form: a power law with an exponential ceiling, P(s) ∝ s^−κ·e^(−s/s\*). The
-exponent is **universal**, κ ≈ 0.95 — the same everywhere — and this form beats
-the standard rival (a lognormal) decisively. Panel (b) below is the proof:
-distributions from states whose ceilings differ 20-fold collapse onto a single
-curve once rescaled. (An earlier working estimate of κ ≈ 1.35 was an artifact of
-fitting the slope while ignoring the ceiling; the joint fit is stable.)
+**Figure 3, panel by panel.**
 
-**All the physics is in the ceiling.** The cutoff s\*(u,τ) — the largest avalanche
-a state typically produces — is the real landscape: it spans a factor of 68,
-grows roughly quadratically with stress, factorizes just as q did, and (panel c)
-is consistent with **diverging exactly at the steady-flow attractor** û = 1 — the
-signature of steady flow being a *critical state* with system-spanning events.
-Consistent with, not proven: a smooth quadratic fits equally well, and deciding
-needs the same two things flagged in §9 — longer runs, and a second system size.
+**(a) vs (b)** The measured q field next to the q field rebuilt from the
+fitted law. They are near-duplicates across the map, including the elastic
+floor at low u and the softening region (q > 1) in the high-u, high-τ
+corner.
 
-**The memory is in the biggest events.** Panel (d): at identical (u, τ),
-slow-cooled samples produce avalanches with a 2.0× larger ceiling than
-fast-quenched ones (measurement control: 1.09×). Note the ladder across this
-whole study — typical jump sizes differ 1.34×, the average flow rate 1.7×, and
-the large-event scale 2× between preparations. The hidden state variable of §8 is
-concentrated in the most *collective* events, which points suspicion firmly at
-spatial structure (incipient shear bands) — testable only with per-atom data.
+**(c)** The same comparison voxel by voxel, across two decades of q. The
+shaded band is this grid's statistical noise floor (17.5%, split-half
+ensembles). The reconstruction lands at median +1.8%, RMS 17% — **the fitted
+law reproduces the plastic-rate field to within the data's own noise.**
+There is no headroom left; a better law could not score better on this test.
 
-![Avalanche cutoff landscape](figures/avalanche_cutoff.png)
+**(d)** Where the ceiling matters and where it doesn't. Model mean sizes
+against measured ones, for both fitted laws. The TPL (blue) nails first
+moments almost by construction — at fixed exponent, fitting its scale s* *is*
+moment-matching, an accounting identity rather than evidence for the
+exponential tail. The ceiling law (red) earns its moments from a shape chosen
+by per-event likelihood: unbiased, with ~17% scatter. Mean-level quantities
+cannot discriminate the two tails — which is exactly why Section 4 argued at
+the per-event level.
 
-**Why map this at all?** With κ, the ceiling field s\*(u,τ), the stress-to-energy
-drop ratio, and the measured stiffness in hand, the stochastic evolution of a
-deforming sample becomes a closed "master equation" whose ingredients are all
-measured functions — and the event rate λ comes for free from a consistency
-identity (rate × mean event size = plastic flow). Solving that equation, rather
-than simulating atoms, is what could deliver the things no mean-field model can:
-the sample-to-sample **distribution of yield strengths** (we hold 850 measured
-peaks to test against), the serration statistics that experiments actually record,
-and an analytic brittle-vs-ductile criterion. That assembly — plus the untouched
-"aging" channel of events that drop energy without dropping stress (36% of all
-events, concentrated before yield) — is the project's current frontier.
+**(e), (f)** The first pass's factor analysis, run twice — once on measured q
+(black), once on model-rebuilt q (red). Both factorize at 96%; the factors
+lie on top of each other; and symbolic regression, run independently on each
+version, returns the **same functional knee with nearly the same constants**.
+For f(τ): τ·log(1/τ − 0.44) from measured q vs τ·log(1/τ − 0.43) from the
+model. For Λ(u): a form with a **pole at u = 0.0287** (measured) vs
+u = 0.0280 (model) — a divergence of plastic activity sitting just past the
+edge of the sampled range (largest u-bin center 0.0275) and just above the
+attractor the dynamics heads toward (u ≈ 0.0255; Figure 4d). The first
+pass's downstream analytic structure is fully recoverable from the fitted
+event law; none of it depended on measuring q directly.
 
-## 11. Where this leaves us
+## 8. The acid test: simulating all 850 runs
 
-| | |
+If the model — two drift fields, the hazard, the jump kernel, and P(s|u,τ) —
+really is the dynamics, it should be able to *replace* the MD. So we ran it
+forward: 850 synthetic trajectories from the measured initial conditions,
+step by step at Δγ = 10⁻⁵, drawing every event size from the fitted law. And
+because the law is the part on trial, the identical simulation was run three
+ways: sizes from the ceiling law, sizes from the fitted TPL, and sizes
+resampled from the raw per-voxel catalogs (the "cheating" arm — as well as
+any size model could possibly do here).
+
+![Forward simulation](figures/forward_sim.png)
+
+**Figure 4, panel by panel.**
+
+**(a)** Ensemble stress–strain curves for all nine preparations (color =
+cooling rate): MD solid, model dashed. The model reproduces the elastic
+rise, the ordering and height of the stress overshoot across a 256× range of
+cooling rate, the post-yield decay, and the flow plateau (flow stresses at
+γ = 0.5 within ±5%). None of these curves was fit directly — they emerge
+from fields measured at the single-step level.
+
+**(b)** The same comparison for the energy coordinate u(γ). The model is
+good early and visibly too *convergent* late: the dashed curves pinch
+together faster than the data's. Keep this panel in mind for (d).
+
+**(c)** The 850 yield peaks — the distribution of maximum stress per run, by
+preparation. Black: MD. The three simulation arms bracket the data:
+empirical resampling at 0.9% RMS, TPL at 1.4%, ceiling law at 2.5% (worst
+single rate 4.3%). Two honest readings. First, the model predicts the
+yield-strength distribution of a glass from its preparation history to a few
+percent. Second, the *differences between size laws are smaller than the
+differences between preparations* — macroscopic observables feel only the
+law's mean, so they are the wrong place to identify tail shape (Section 4's
+per-event likelihood is the right place).
+
+**(d)** What the model says about the question the data cannot answer: no MD
+run reached steady state by γ = 0.5. Run 4× further, the model's nine
+preparations converge onto a common attractor u∞ ≈ 0.0255 by γ ≈ 1, the
+preparation spread shrinking from 4.0% to 2.6%. **Treat this as the model's
+opinion, not as evidence**: its fields are preparation-blind by construction
+(one shared map for all histories), so eventual convergence is baked in. The
+data's own verdict is panel (b): the real u(γ) curves keep a 23.7% spread at
+γ = 0.5 where the simulation keeps only 4% — the same missing state variable
+as Figure 2d, seen macroscopically. This, quantitatively, is the model's
+failure mode, and it is the strongest argument in this repository for runs
+past γ = 0.5 and for a third state variable.
+
+## 9. The modeling choices, and why
+
+1. **Drift + jump decomposition.** Not assumed — AQS dynamics *is* elastic
+   branches punctuated by discrete events. The decomposition is exact
+   bookkeeping; all modeling risk is pushed into the three ingredients,
+   where each can be tested separately.
+2. **20×20 state grid.** Finer than the first pass's 10×10, as befits a pass
+   whose subject is distributions rather than means. The price is a higher
+   per-voxel noise floor (17.5% vs 11.3% split-half); every "at the floor"
+   claim above uses the recomputed floor, not the old one.
+3. **Form discovery by exhaustive enumeration, not genetic search.** The
+   headline claim is a *negative* one ("no exponential tail survives"), and
+   negative claims require a search you can prove was complete. Counts:
+   624,936 trees per target at complexity ≤ 8, spot-checked at ≤ 9 with
+   4,505,024.
+4. **Poisson-weighted binned target for SR; likelihood for selection.**
+   Binned least squares is what makes an exhaustive search affordable; it is
+   *not* how a winner gets picked (it over-weights crowded bins and produced
+   one artifact form that likelihood killed at ΔAIC +20,000). Division of
+   labor: SR proposes structures, normalized MLE with AIC and
+   trajectory-blocked CV disposes.
+5. **Trajectory-blocked validation.** Events within a run are correlated;
+   splitting by event would leak information. All cross-validation splits
+   are by whole trajectory, as in the first pass.
+6. **Global (k, m, ε), local s_c.** Justified three ways: the fitted
+   exponents are flat across cells (k spread ±0.05); the collapse in
+   Fig. 1b works with all shape freedom removed; and the rank-1 structure
+   of s_c says the one local parameter is itself low-dimensional. Refitting
+   ε per cell moves it ±2× with no AIC gain — kept global.
+7. **m decoupled from k.** SR's complexity budget first delivered the law
+   with a single exponent (m = k); likelihood preferred decoupling in 8/8
+   large cells, and the tied version biased mean sizes by +10%. We report
+   the tied form as the *discovery* and the decoupled form as the *fit* —
+   that is the honest division.
+8. **No lower size cutoff.** The ε-rounding is part of the law, so the fit
+   window is "all recorded events" — removing the xmin arbitrariness that
+   plagued first-pass exponent estimates (the old κ drifted 1.2→1.6 with
+   xmin; k now moves only 0.85→1.03 under far larger window changes, and
+   the first pass's κ ≈ 0.95 is recovered as the mid-range slope).
+9. **Aging events as a separate exponential channel.** 36% of events, but
+   they carry no stress drop; they matter only for u-bookkeeping. An
+   exponential per-voxel size model is the least structure that keeps the
+   u-drift honest; nothing downstream is sensitive to this choice.
+10. **Three simulation arms.** The empirical-resampling arm bounds what any
+    size law could achieve; the TPL arm is the ablation. Differences between
+    arms measure how much the law's *form* matters for each observable —
+    which is how Fig. 4c can honestly conclude "peaks don't discriminate
+    tails" instead of over-claiming a win.
+
+## 10. What holds, what doesn't
+
+| claim | status |
 |---|---|
-| **Supported** | Effective-temperature phenomenology; the factorization q = Λ(u)·f(τ); an activated Λ as one of two surviving forms; a universal avalanche exponent with a state-dependent ceiling |
-| **Not established** | The Boltzmann form *uniquely*; a preparation-independent formation energy; a common steady-state attractor; any stress threshold in f; ceiling divergence at the attractor (vs smooth growth) |
-| **Contradicted** | Sufficiency of any two-variable state; constancy of the barrier across preparations |
+| Event sizes follow one universal shape with a single state-dependent scale | **supported** (Fig. 1b: 12 cells spanning 100× in scale collapse) |
+| The large-size cutoff is a hard ceiling, sharper than exponential | **supported where testable** (8/8 AIC, synthetic controls pass both directions); degenerate in sparse cells |
+| Small-size exponent k ≈ 0.9 | **supported**, ±0.1 window systematic |
+| Ceiling exponent m ≈ 2 | order-of-magnitude only |
+| The ceiling field factorizes; its u-factor is activated-like | factorization **supported** (96%); the specific factor forms are best-of-front, not unique |
+| The fitted law reproduces the plastic-rate field q | **at the noise floor** (Fig. 3c) — this test is saturated |
+| The fitted model reproduces stress–strain curves and yield peaks across 256× in cooling rate | **supported**, few-percent level (Fig. 4a,c) |
+| (u,τ) is a sufficient state | **contradicted, again, independently**: 1.71× ceiling memory (Fig. 2d) and 5×-underpredicted u-spread (Fig. 4b,d) |
+| Steady state / convergence of preparations | not in the data; the model's convergence prediction (Fig. 4d) is structurally baked in — needs longer runs |
 
-Ranked next steps: (1) measure the reference energy u₀ independently — this alone
-breaks the activated-vs-power degeneracy; (2) reverse-loading AQS runs from saved
-configurations — a direct, cheap test of the back-stress variable; (3) extend or
-bracket the steady state; (4) spatial fields to test localization — now doubly
-motivated by the memory-in-the-tail result; (5) assemble the master equation from
-the mapped landscape (§10) and test it against the 850 measured yield peaks. The
-destination is no longer a mean-field fit but a measured, generative law for
-yield.
+**Next, in order of value:** (1) longer strain runs — every open question
+above touches γ > 0.5; (2) the system size N, ideally a second size, to test
+the finite-size reading of the ceiling; (3) any candidate third state
+variable, evaluated directly against the 1.71× ceiling-memory ratio; (4)
+reverse loading, unchanged from the first pass.
 
-## 12. What's in this repository
+## 11. What's in the repository
 
-| Path | What it is |
+| file | contents |
 |---|---|
-| `README.md` | This overview |
-| [REPORT.md](REPORT.md) | The full technical report, with the complete robustness battery |
-| `SEEM_project_deck.pptx` | 14-slide presentation version |
-| [library/stz.py](library/stz.py) | Field extraction: loading, event labeling, modulus, q, hazard, factorization tests |
-| [library/symreg.py](library/symreg.py) | The symbolic-regression engine (exhaustive + genetic modes, physics filters) |
-| [library/avalanche.py](library/avalanche.py) | Truncated-power-law estimators for the avalanche size statistics (§10) |
-| [library/library.py](library/library.py) | Fixed candidate-function library (SINDy baseline arm) |
-| `SEEM-model.ipynb` | Original exploratory notebook (voxel SEEM model, first SINDy attempts) |
-| `figures/` | All figures referenced above |
+| [library/symreg.py](library/symreg.py) | the exhaustive symbolic-regression engine (grammar, variable projection, fingerprint dedup, exact Pareto fronts) |
+| [library/dist.py](library/dist.py) | normalized-MLE machinery: candidate densities, AIC, trajectory-blocked CV, moments, sampling |
+| [library/stz.py](library/stz.py), [library/avalanche.py](library/avalanche.py) | first-pass field extraction and TPL fitting (kept for comparison) |
+| [REPORT.md](REPORT.md) | first-pass technical report (measured-field route + STZ scrutiny) |
+| figures/event_law.png, ceiling_field.png, q_reconstruction.png, forward_sim.png | this pass (Figures 1–4) |
+| figures/state_sufficiency.png … steady_state.png | first pass |
 
-**Data:** the underlying trajectory file `df_clean.pkl` (2.4 GB, 42.5M rows) is
-gitignored and not distributed here. All voxel-level analysis rebuilds from it in
-a single ~6-second pass; the analysis scripts follow a
-measure-the-noise-floor-first workflow described in REPORT.md §2 and §5.
+Raw data (`df_clean.pkl`, 2.4 GB) is not distributed with the repository.

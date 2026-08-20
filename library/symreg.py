@@ -289,11 +289,15 @@ def _pareto(results):
 # ---------------------------------------------------------------------------
 
 def enumerate_search(x, y, sigma=None, max_complexity=7, max_consts=2,
-                     checker=None, n_restarts=4, verbose=True):
+                     checker=None, n_restarts=4, verbose=True, probe=None):
     """Exhaustive symbolic regression for a 1-D target.
 
     x, y    : data. sigma: per-point standard errors (weights = 1/sigma).
     checker : optional admissibility filter from make_checker().
+    probe   : grid used for the duplicate-collapsing fingerprint. Defaults to
+              linspace over the data range; pass a log-spaced grid when x
+              spans decades, so expressions differing only at small x are not
+              falsely merged.
 
     Returns the exact Pareto front within the grammar.
     """
@@ -303,7 +307,8 @@ def enumerate_search(x, y, sigma=None, max_complexity=7, max_consts=2,
     w = w / np.mean(w)
 
     by_c = _build(max_complexity, max_consts)
-    probe = np.linspace(x.min() * 0.9 + 1e-6, x.max() * 1.1, 17)
+    if probe is None:
+        probe = np.linspace(x.min() * 0.9 + 1e-6, x.max() * 1.1, 17)
 
     seen, results, n_tot, n_uniq = set(), [], 0, 0
     for c in range(1, max_complexity + 1):

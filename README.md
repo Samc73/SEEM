@@ -164,11 +164,16 @@ ceiling at ξ → 1. This is the strongest visual statement of the result:
 
 **Figure 3 — the discovery process itself, so it can be audited.** Each grey
 line is one cell's exact Pareto front: the best achievable misfit at each
-expression complexity. Orange is the largest cell, pushed one complexity
-unit further (4.5 million trees). The fronts drop steeply until complexity
-8 — where the ceiling law enters (arrow) — and gain little beyond. Because
-the enumeration is exhaustive, "the TPL never made a front" is a statement
-about this grammar and this data, not about search luck.
+expression complexity. Heights are **not comparable between curves** — each
+cell's misfit is weighted by its own Poisson error bars, so a curve's level
+reflects that cell's event count and noise floor, not the quality of its
+formula; the meaningful reading is where each front stops dropping. Orange
+is the audit run, not a winner: the largest cell re-searched with the budget
+pushed one complexity unit further (4.5 million trees, 7× the standard
+budget) to certify that no new form appears past the ceiling-law knee at
+complexity 8. Because the enumeration is exhaustive, "the TPL never made a
+front" is a statement about this grammar and this data, not about search
+luck.
 
 ![Falsifiability control](figures/fig04_falsifiability.png)
 

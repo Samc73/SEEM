@@ -4,3 +4,4 @@ df_clean.pkl
 ~$*
 tmp_dict*.pkl
 __pycache__/
+pipeline/out/

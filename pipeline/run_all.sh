@@ -45,5 +45,13 @@ run sequence_test.py     # size -> reloading-gap correlation at fixed cell (rene
 GRID=40 python extract2.py > out/extract2_grid40.log 2>&1   # 42x42 grid for the resolution test
 GRID=40 python fields.py > out/fields_grid40.log 2>&1
 run sim_fine.py          # empirical arm on 22x22 vs 42x42: the variance gap is not resolution
-run make_figs_memory.py  # figures/fig16 ... fig21
+run renewal_hazard.py    # hazard vs stress reloaded since the last event (renewal tables)
+run sim_renewal.py       # forward simulation with the renewal hazard (all events): no effect
+run sequence_compare.py  # size->gap correlation, data vs the simulation's own event log
+run large_events.py      # Fano factor of large-event counts, data vs simulation
+run renewal_big.py       # hazard vs stress reloaded since the last LARGE event
+run sim_twoclass.py      # two-class hazard: small events Markov, large events reload-dependent
+run size_reload.py       # large-event size vs reloaded stress; consecutive sizes
+run persistence_test.py  # persistence of deviations from the preparation mean, data vs model
+run make_figs_memory.py  # figures/fig16 ... fig22
 echo "== done ($(date +%H:%M:%S))"

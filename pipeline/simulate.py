@@ -15,13 +15,16 @@ SCRATCH = _os.path.join(_HERE, 'out')
 DG = 1e-5
 
 
-def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, size_scale=None, window_steps=None, aftershock=None):
+def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, size_scale=None, window_steps=None, aftershock=None, renewal=None, record_events=False, twoclass=None):
     """Q may be (NB,NB,K) shared by all trajectories, or (G,NB,NB,K) with
     `group` giving each trajectory's table index (preparation-aware arms).
     `size_scale(step)` may return a per-trajectory multiplier applied to every
     sampled event size (a strain-dependent ceiling; exact up to the eps region).
     `aftershock=(p_base, mult)` replaces the hazard by p_base(v) * mult[n-1], n the
-    steps since the trajectory's last event (mult[-1] applies beyond its length)."""
+    steps since the trajectory's last event (mult[-1] applies beyond its length).
+    `renewal=(H, edges, mode)` replaces the hazard by H[v, bin(x)] with x the stress
+    reloaded since the last event (mode 'abs') or that divided by the last event's
+    size (mode 'rel'); H is (NB*NB, nbins), edges the bin edges."""
     NB = int(np.sqrt(fields['mu2'].size))
     ue, te = fields['ue'], fields['te']
     mu2 = fields['mu2'].ravel()
@@ -30,6 +33,9 @@ def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, siz
     if aftershock is not None:
         pd_ = aftershock[0].ravel(); mult = np.asarray(aftershock[1], float)
         since = np.full(len(u0), len(mult), int)
+    if renewal is not None:
+        H, redges, rmode = renewal; H = H.reshape(-1, H.shape[-1])
+        rel = np.zeros(len(u0)); slast = np.full(len(u0), np.nan)
     pa_ = fields['p_age'].ravel()
     ma_ = np.maximum(fields['m_age'].ravel(), 1e-9)
     ka_ = fields['ka'].ravel()
@@ -38,6 +44,9 @@ def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, siz
     per_group_k = ka_.size > NB * NB          # (G,NB,NB) coupling fields
     K = Q.shape[-1]
     QF = Q.reshape(-1, K)
+    if twoclass is not None:
+        Hs, Hb, bedges, Qs, Qb = twoclass; Hs = Hs.ravel(); Hb = Hb.reshape(-1, Hb.shape[-1])
+        QsF, QbF = Qs.reshape(-1, K), Qb.reshape(-1, K); rbig = np.zeros(len(u0))
     n = len(u0)
     off = np.zeros(n, int) if Q.ndim == 3 else np.asarray(group, int) * (NB * NB)
     u = u0.astype(float).copy()
@@ -51,18 +60,32 @@ def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, siz
     if window_steps:
         nwin = nsteps // window_steps + 1
         cnt = np.zeros((n, nwin)); ssum = np.zeros((n, nwin))
+    if record_events:
+        ev_log = []
     for i in range(nsteps):
         iu = np.clip(np.searchsorted(ue, u, side='right') - 1, 0, NB - 1)
         it = np.clip(np.searchsorted(te, t, side='right') - 1, 0, NB - 1)
         v = iu * NB + it
         r = rng.random(n)
         pdv, pav = pd_[v], pa_[v]
+        if twoclass is not None:
+            pbig = Hb[v, np.clip(np.searchsorted(bedges, rbig, side='right') - 1, 0, Hb.shape[1] - 1)]
+            pdv = Hs[v] + pbig
+            isbig = rng.random(n) < pbig / np.maximum(pdv, 1e-12)
         if aftershock is not None:
             pdv = np.minimum(pdv * mult[np.minimum(since, len(mult)) - 1], 0.95)
+        if renewal is not None:
+            xr = rel if rmode == 'abs' else np.where(np.isfinite(slast), rel / np.where(np.isfinite(slast), slast, 1), 0.0)
+            rb = np.clip(np.searchsorted(redges, xr, side='right') - 1, 0, H.shape[1] - 1)
+            pdv = H[v, rb]
         ev = r < pdv
         ag = (~ev) & (r < pdv + pav)
         el = ~(ev | ag)
         t[el] += mu2[v[el]] * DG
+        if renewal is not None:
+            rel[el] += mu2[v[el]] * DG
+        if twoclass is not None:
+            rbig[el] += mu2[v[el]] * DG
         u[el] += gd[v[el]]
         ne = int(ev.sum())
         if ne:
@@ -70,11 +93,19 @@ def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, siz
             k0 = q.astype(int)
             fr = q - k0
             T = QF[off[ev] + v[ev]]
+            if twoclass is not None:
+                T = np.where(isbig[ev][:, None], QbF[v[ev]], QsF[v[ev]])
             idx = np.arange(ne)
             s = T[idx, k0] * (1 - fr) + T[idx, np.minimum(k0 + 1, K - 1)] * fr
             if size_scale is not None:
                 s = s * size_scale(i)[ev]
             t[ev] -= s
+            if twoclass is not None:
+                rbig[ev & isbig] = 0.0
+            if record_events:
+                ev_log.append(np.c_[np.nonzero(ev)[0], np.full(ne, i), v[ev], s, t[ev] + s])
+            if renewal is not None:
+                rel[ev] = 0.0; slast[ev] = s
             if window_steps:
                 cnt[ev, i // window_steps] += 1; ssum[ev, i // window_steps] += s
             vk = (off[ev] + v[ev]) if per_group_k else v[ev]
@@ -91,6 +122,9 @@ def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, siz
             rec_t[:, j] = t
             rec_u[:, j] = u
             j += 1
+    extra = ()
     if window_steps:
-        return rec_t[:, :j], rec_u[:, :j], peak, cnt, ssum
-    return rec_t[:, :j], rec_u[:, :j], peak
+        extra += (cnt, ssum)
+    if record_events:
+        extra += (np.concatenate(ev_log) if ev_log else np.zeros((0, 5)),)
+    return (rec_t[:, :j], rec_u[:, :j], peak) + extra

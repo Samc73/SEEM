@@ -209,11 +209,13 @@ save(fig, 'fig20_clustering.png')
 sa = json.load(open(SCRATCH + '/sim_aftershock.json')); sfn = json.load(open(SCRATCH + '/sim_fine.json'))
 sq = json.load(open(SCRATCH + '/sequence_test.json'))
 fig, (L, Rr) = plt.subplots(1, 2, figsize=(12.5, 4.8))
-labels = ['data', 'Markov model', '+ aftershock hazard', 'empirical, 22×22', 'empirical, 42×42']
-src = [sa['data'], sa['markov'], sa['aftershock'], sfn['grid20'], sfn['grid40']]
-cols = ['k', '0.55', 'purple', 'seagreen', 'darkorange']
+srn = json.load(open(SCRATCH + '/sim_renewal.json')); stc = json.load(open(SCRATCH + '/sim_twoclass.json'))
+tc = dict(stc['twoclass_reload']); tc['fano'] = [tc['fano_all']] * 5
+labels = ['data', 'Markov model', '+ aftershock hazard', '+ renewal hazard', '+ two-class reload', 'empirical, 22×22', 'empirical, 42×42']
+src = [sa['data'], sa['markov'], sa['aftershock'], srn['renewal_rel'], tc, sfn['grid20'], sfn['grid40']]
+cols = ['k', '0.55', 'purple', 'royalblue', 'teal', 'seagreen', 'darkorange']
 x = np.arange(len(labels))
-fano = [np.mean(r['fano'][1:]) for r in src]; cvs = [np.mean(r['cv_sum'][1:]) for r in src]
+fano = [np.mean(r['fano'][1:]) for r in src]; cvs = [np.mean(r['cv_sum'][1:]) if len(r['cv_sum']) == 5 else np.mean(r['cv_sum']) for r in src]
 sdt = [r['sd_tau']['0.1'] if '0.1' in r['sd_tau'] else r['sd_tau'][0.1] for r in src]
 L.bar(x - 0.28, np.array(fano) / fano[0], 0.26, color=cols, ec='k', lw=0.5)
 L.bar(x, np.array(cvs) / cvs[0], 0.26, color=cols, ec='k', lw=0.5, hatch='//')
@@ -226,13 +228,17 @@ L.legend(handles=[Patch(fc='w', ec='k', label='Fano factor of event count (γ 0.
                   Patch(fc='w', ec='k', hatch='//', label='CV of stress released per window'),
                   Patch(fc='w', ec='k', hatch='..', label='within-preparation SD of τ at γ = 0.1')], fontsize=8, loc='upper left')
 L.set_ylim(0, 1.6)
-L.set_title('Variance gap: not the hazard memory, not the grid')
-gp = sq['gap_profile']; e = np.array(gp['size_edges']); xc = np.sqrt(e[1:] * e[:-1]); y = np.array(gp['rel_gap']); n = np.array(gp['n'])
-ok = n >= 200
-Rr.plot(xc[ok], y[ok], 'o-', color='crimson', lw=2, ms=7, label='MD data, %d cells' % sq['ln gap(k -> k+1)']['ncells'])
-Rr.axhline(1, color='0.5', lw=1, ls='--', label='Markov model in (u,τ): flat within a cell')
+L.set_title('Variance gap: survives every hazard repair and the grid')
+sqc = json.load(open(SCRATCH + '/sequence_compare.json'))
+for name, col, lab in [('data', 'crimson', 'MD data'), ('markov sim', '0.4', 'Markov simulation (same statistic)')]:
+    gp = sqc[name]['gap_profile']; e = np.array(gp['size_edges']); xc = np.sqrt(e[1:] * e[:-1]); y = np.array(gp['rel_gap']); n = np.array(gp['n'])
+    ok = n >= 200
+    Rr.plot(xc[ok], y[ok], 'o-' if name == 'data' else 's--', color=col, lw=2, ms=6,
+            label='%s: r = %+.2f all events, %+.2f for s > 10⁻³' % (lab, sqc[name]['cell of k+1'][0], sqc[name]['cell of k+1, s > 1e-3'][0]))
+Rr.axvline(1e-3, color='0.7', lw=1, ls=':')
+Rr.text(1.1e-3, 0.03, 'aftershock regime →', fontsize=8, color='0.4')
 Rr.set_xscale('log'); Rr.set_yscale('log')
 Rr.set_xlabel('size of event k'); Rr.set_ylabel('median strain to the next event  /  cell median')
-Rr.set_title('Reloading: the gap after an event grows with its size (r = %+.2f)' % sq['ln gap(k -> k+1)']['corr'])
-Rr.legend(fontsize=8.5, loc='upper left')
+Rr.set_title('Gap after an event vs its size: mostly the aftershock regime')
+Rr.legend(fontsize=8, loc='lower right')
 save(fig, 'fig21_renewal.png')

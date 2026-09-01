@@ -3,11 +3,16 @@ _HERE = _os.path.dirname(_os.path.abspath(__file__))
 """Does the energy released per event, at fixed state AND fixed event size,
 depend on preparation?  Per-voxel linear fits du = a + b*s for slow-3 and
 fast-3 cooling rates, compared at the voxel's pooled mean size."""
-import numpy as np, json
+import numpy as np, json, sys
+WIN = sys.argv[1] if len(sys.argv) > 1 else 'all'      # all | early (gamma<0.3) | late (gamma>=0.3)
 SCRATCH = _os.path.join(_HERE, 'out')
 ev = np.load(SCRATCH + '/model_events.npz'); d = np.load(SCRATCH + '/model_stats.npz')
 S, DU, EV, ECR = ev['S'].astype(float), ev['DUe'].astype(float), ev['EV'], ev['Ecr']
 EU, ET = ev['Eu'].astype(float), ev['Et'].astype(float)
+EG_ = ev['Eg'].astype(float)
+keep = (EG_ < 0.3) if WIN == 'early' else ((EG_ >= 0.3) if WIN == 'late' else np.ones(len(S), bool))
+S, DU, EV, ECR, EU, ET = S[keep], DU[keep], EV[keep], ECR[keep], EU[keep], ET[keep]
+print('window:', WIN)
 rates = d['rates']; slow = np.isin(ECR, rates[:3]); fast = np.isin(ECR, rates[-3:])
 rows = []
 for v in np.unique(EV):
@@ -36,5 +41,5 @@ print('  unconditional         %+8.2f +- %.2f' % (1e6*wm('uncond'), 1e6*wsd('unc
 print('  at fixed s, u, tau (voxel means)  %+8.2f +- %.2f' % (1e6*wm('at_sbar'), 1e6*wsd('at_sbar')))
 print('  mean size slow/fast   %.3f' % (wm('s_slow')/wm('s_fast')))
 print('  slope b slow %.5f  fast %.5f   intercept a slow %.2e fast %.2e' % (wm('b_slow'), wm('b_fast'), wm('a_slow'), wm('a_fast')))
-json.dump(dict(rows=rows, uncond=wm('uncond'), at_sbar=wm('at_sbar'), se_uncond=wsd('uncond'), se_at_sbar=wsd('at_sbar')),
-          open(SCRATCH + '/coupling_memory.json', 'w'), indent=1)
+json.dump(dict(window=WIN, rows=rows, uncond=wm('uncond'), at_sbar=wm('at_sbar'), se_uncond=wsd('uncond'), se_at_sbar=wsd('at_sbar')),
+          open(SCRATCH + ('/coupling_memory.json' if WIN == 'all' else '/coupling_memory_%s.json' % WIN), 'w'), indent=1)

@@ -54,9 +54,10 @@ save(fig, 'fig16_memory_channels.png')
 fig, (L, Rr) = plt.subplots(1, 2, figsize=(12.5, 4.8))
 g_data = np.array(sm['data']['g_ds'])
 cu_data = np.array(sm['data']['curves_u'])
-arms = [a for a in ['model4', 'mem_sc', 'mem_sc_u', 'mem_sc_k', 'mem_empir'] if a in sm]
+arms = [a for a in ['model4', 'mem_sc', 'mem_relax_pw', 'mem_sc_u', 'mem_sc_k', 'mem_empir'] if a in sm]
 style = {'model4': (':', 'k', 'README model (preparation-blind)'),
          'mem_sc': ('--', 'crimson', 'ceiling × (rate)$^{\\beta}$, one global $\\beta$'),
+         'mem_relax_pw': ('-', 'seagreen', 'ceiling × (rate)$^{\\beta(\\gamma)}$, relaxing (Fig. 19)'),
          'mem_sc_u': ('-.', 'darkorange', 'ceiling × (rate)$^{\\beta(u)}$'),
          'mem_sc_k': ((0, (3, 1, 1, 1)), 'purple', '+ per-preparation energy coupling'),
          'mem_empir': ((0, (5, 2)), '0.45', 'per-preparation empirical resampling')}
@@ -84,6 +85,7 @@ for a in arms:
     gs, ss = spread_curve(sm[a]['curves_u'], g_sim)
     Rr.plot(gs, 100 * ss, ls=style[a][0], color=style[a][1], lw=1.7, label=style[a][2])
 Rr.set_ylim(0, 60)
+Rr.set_xlim(0.05, 0.5)
 Rr.set_xlim(0.05, 0.5)
 Rr.set_xlabel('strain $\\gamma$')
 Rr.set_ylabel('spread of mean $u$ across preparations, max/min − 1  (%)')
@@ -129,3 +131,75 @@ A.plot([], [], 's', color='royalblue', label='synthetic: true TPL (no ceiling), 
 A.legend(fontsize=8, loc='lower right')
 A.set_title('Is the ceiling just the largest event?  Data behave like a true ceiling')
 save(fig, 'fig18_ceiling_pinning.png')
+
+
+# ---- 19: the memory relaxes with strain ----
+m2 = json.load(open(SCRATCH + '/memory_2d.json'))
+ml = json.load(open(SCRATCH + '/memory_late.json'))
+fig, (L, Rr) = plt.subplots(1, 2, figsize=(12.5, 4.8))
+wins = list(m2['by_window'].keys()); gc = np.array([np.mean([float(x) for x in w.split('-')]) for w in wins])
+b = np.array([m2['by_window'][w]['beta'] for w in wins]); se = np.array([m2['by_window'][w]['se'] for w in wins])
+L.errorbar(gc, b, se, fmt='o-', color='k', lw=2, capsize=3, ms=7, label='all cells (fixed effect per cell × window)')
+cols = {1: 'royalblue', 2: 'darkorange', 3: 'crimson'}
+names = {1: 'u ∈ [0.016, 0.022)', 2: 'u ∈ [0.022, 0.026)', 3: 'u ∈ [0.026, 0.031)'}
+for bnd in [1, 2, 3]:
+    xs, ys, es = [], [], []
+    for g in range(len(wins)):
+        t = m2['table'].get('u%d_g%d' % (bnd, g))
+        if t and t['ngroups'] >= 4:
+            xs.append(gc[g] + 0.01 * (bnd - 2)); ys.append(t['beta']); es.append(t['se'])
+    L.errorbar(xs, ys, es, fmt='s--', color=cols[bnd], capsize=2, ms=5, lw=1.2, label=names[bnd])
+L.axhline(0, color='0.5', lw=1)
+L.axhline(sm['beta'], color='crimson', ls=':', lw=1.2)
+L.text(0.47, sm['beta'] + 0.006, 'global β used in Fig. 17', color='crimson', fontsize=8, ha='right')
+L.set_xlabel('strain window'); L.set_ylabel('memory exponent β of the mean event size')
+L.set_title('The ceiling memory relaxes with strain, also at fixed u')
+L.legend(fontsize=8, loc='lower right')
+# right: where the late-strain memory sits (early vs late channel table)
+chan = ['hazard p_drop', 'mean size <s>', 'plastic rate q']
+lab = {'hazard p_drop': 'hazard', 'mean size <s>': 'mean size', 'plastic rate q': 'plastic rate q'}
+x = np.arange(len(chan)); wdt = 0.36
+for j, (win, col) in enumerate([('early', '0.35'), ('late', 'crimson')]):
+    vals = [ml[win][c]['slow_fast'] for c in chan]
+    Rr.bar(x + (j - 0.5) * wdt, vals, wdt, color=col, label='%s strain (γ %s 0.3)' % (win, '<' if win == 'early' else '≥'))
+    for xi, v, c in zip(x + (j - 0.5) * wdt, vals, chan):
+        Rr.text(xi, v + 0.02, 'β=%+.3f' % ml[win][c]['beta'], ha='center', fontsize=7.5)
+du_e, du_l = ml['early']['total <du>/step'], ml['late']['total <du>/step']
+Rr.text(0.02, 0.97, 'energy step ⟨du⟩ at fixed cell, slow − fast:\n  early  %+.2f × 10⁻⁶ (typical |⟨du⟩| %.2f)\n  late   %+.2f × 10⁻⁶ (typical |⟨du⟩| %.2f)\nall of it in the event channel, both windows' %
+        (1e6 * du_e['slow_fast'], 1e6 * du_e['typical'], 1e6 * du_l['slow_fast'], 1e6 * du_l['typical']),
+        transform=Rr.transAxes, va='top', fontsize=8.5, bbox=dict(fc='white', ec='0.7'))
+Rr.axhline(1, color='k', lw=1)
+Rr.set_xticks(x, [lab[c] for c in chan]); Rr.set_ylim(0.8, 2.3)
+Rr.set_ylabel('slow-3 / fast-3 at the same cell (median)')
+Rr.set_title('Early vs late: the size memory fades, the hazard stays blind')
+Rr.legend(fontsize=8.5, loc='upper right')
+save(fig, 'fig19_memory_relaxes.png')
+
+# ---- 20: events cluster in strain; the hazard is not Markov at the step scale ----
+cl = json.load(open(SCRATCH + '/cluster_test.json'))
+sc2 = json.load(open(SCRATCH + '/scatter2.json'))
+me = json.load(open(SCRATCH + '/merged_events.json'))
+fig, (L, Rr) = plt.subplots(1, 2, figsize=(12.5, 4.8))
+lag = np.arange(1, 9); h = np.array(cl['lag_hazard'])
+L.plot(lag, h / cl['baseline'], 'o-', color='crimson', lw=2, ms=7)
+L.axhline(1, color='k', lw=1, ls='--', label='Markov in (u,τ): no dependence on history')
+L.set_yscale('log'); L.set_xlabel('strain steps since the last event  (1 step = 10⁻⁵ strain)')
+L.set_ylabel('hazard / hazard after > 8 quiet steps  (same cells)')
+L.set_title('Aftershocks: the hazard is ×%.0f on the step after an event' % (h[0] / cl['baseline']))
+L.text(0.97, 0.75, '%d cells\nevents in runs of ≥ 2 consecutive steps:\n  data 14%%, Markov expectation 0.4%%\nnext event 1.2× larger, not smaller' % cl['ncells'],
+       transform=L.transAxes, ha='right', va='top', fontsize=8.5, bbox=dict(fc='white', ec='0.7'))
+L.legend(fontsize=8.5, loc='upper right')
+wins2 = list(sc2.keys()); xw = np.arange(len(wins2))
+fano_d = [sc2[w]['SDN_data'] ** 2 / sc2[w]['N_data'] for w in wins2]; fano_s = [sc2[w]['SDN_sim'] ** 2 / sc2[w]['N_sim'] for w in wins2]
+rel_d = [sc2[w]['SDsum_data'] / sc2[w]['sum_data'] for w in wins2]; rel_s = [sc2[w]['SDsum_sim'] / sc2[w]['sum_sim'] for w in wins2]
+Rr.bar(xw - 0.2, fano_d, 0.38, color='k', label='event count, Fano factor — data')
+Rr.bar(xw + 0.2, fano_s, 0.38, color='0.6', label='event count, Fano factor — model')
+ax2 = Rr.twinx()
+ax2.plot(xw, rel_d, 'o-', color='crimson', lw=2, label='total release per window, CV — data')
+ax2.plot(xw, rel_s, 's--', color='crimson', lw=1.4, mfc='white', label='total release per window, CV — model')
+ax2.set_ylim(0, 0.45); ax2.set_ylabel('CV of stress released per window', color='crimson')
+Rr.set_ylim(0, 2.0); Rr.set_xticks(xw, wins2); Rr.set_xlabel('strain window'); Rr.set_ylabel('Fano factor of event count (within preparation)')
+Rr.set_title('More bursts than the model, yet a steadier stress budget')
+h1, l1 = Rr.get_legend_handles_labels(); h2, l2 = ax2.get_legend_handles_labels()
+Rr.legend(h1 + h2, l1 + l2, fontsize=7.5, loc='upper left')
+save(fig, 'fig20_clustering.png')

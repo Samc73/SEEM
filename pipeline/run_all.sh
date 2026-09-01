@@ -28,9 +28,17 @@ run make_figs_single.py  # figures/fig01 ... fig15
 run memory_stats.py      # per-(trajectory, voxel) sums for every channel of the step process
 run memory_where.py      # memory exponent beta per channel at fixed (u,tau); control -> memory_where.json
 run coupling_memory.py   # energy released per event at fixed size: residual memory
+run coupling_memory.py early
+run coupling_memory.py late
+run memory_2d.py         # memory exponent by strain window x u band (relaxation vs state dependence)
+run memory_late.py       # channel table, early vs late strain
 run memory_fading.py     # memory vs strain window and vs u / tau band
 run ceiling_pinning.py   # sensitivity of s_c to the largest events, MD cells
 run ceiling_pinning_synth.py  # ... the same on synthetic ceiling-law and TPL catalogs
 run sim_memory.py        # forward simulation with the memory put back into the ceiling
-run make_figs_memory.py  # figures/fig16 ... fig18
+run scatter_test.py      # within-preparation run-to-run scatter, data vs arms
+run scatter2.py          # ... decomposed into event counts vs total release per window
+run cluster_test.py      # hazard vs steps since last event (aftershocks)
+run merged_events.py     # runs of consecutive drops merged into avalanches; likelihood contest repeated
+run make_figs_memory.py  # figures/fig16 ... fig20
 echo "== done ($(date +%H:%M:%S))"

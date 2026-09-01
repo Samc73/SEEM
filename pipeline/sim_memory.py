@@ -165,6 +165,38 @@ QU = np.stack([table_model_u(r) for r in range(R)])
 results['mem_sc_u'] = run('mem_sc_u', QU, fields, ridx)
 results['beta_u'] = beta_u.tolist()
 
+# relaxing memory: beta(gamma) from memory_2d.py (fixed effects per cell x strain window)
+m2 = json.load(open(SCRATCH + '/memory_2d.json'))['by_window']
+gw = np.array([[float(x) for x in k.split('-')] for k in m2]); bw = np.array([v['beta'] for v in m2.values()])
+gc = gw.mean(1)
+A_ = np.c_[np.ones(len(gc)), gc]; coef, *_ = np.linalg.lstsq(A_, np.log(-bw), rcond=None)
+beta0, grelax = -np.exp(coef[0]), -1 / coef[1]
+print('beta by window:', dict(zip(m2.keys(), np.round(bw, 3))), ' exp fit: beta(g) = %.3f exp(-g/%.3f)' % (beta0, grelax))
+results['relax_fit'] = dict(windows=list(m2.keys()), beta=bw.tolist(), beta0=float(beta0), grelax=float(grelax))
+lr_i = np.log(rates[ridx] / rates[R // 2])
+def scale_piecewise(i):
+    g = i * 1e-5
+    b = bw[min(max(int((g - gw[0, 0]) // (gw[0, 1] - gw[0, 0])), 0), len(bw) - 1)]
+    return np.exp(b * lr_i)
+def scale_exp(i):
+    return np.exp(beta0 * np.exp(-i * 1e-5 / grelax) * lr_i)
+rec_t, rec_u, peak = simulate(Q0, fields, d['u_init'], d['tau_init'], NSTEPS, seed=42, record_every=REC, size_scale=scale_piecewise)
+def summarize(name, rec_t, rec_u, peak):
+    j = int(round(0.5 / 1e-5 / REC))
+    out = dict(spread_u05=spread(rec_u[:, min(j, rec_u.shape[1] - 1)].astype(float)),
+               spread_u03=spread(rec_u[:, int(round(0.3 / 1e-5 / REC))].astype(float)))
+    pk = np.array([peak[cr == r].mean() for r in rates]); pd_ = np.array([d['tau_peak'][cr == r].mean() for r in rates])
+    out['peak_rms_rel'] = float(np.sqrt(np.mean((pk / pd_ - 1) ** 2)))
+    out['curves_u'] = np.stack([rec_u[cr == r].mean(0) for r in rates]).tolist()
+    out['within_sd_u05'] = float(np.sqrt(np.mean([rec_u[cr == r, min(j, rec_u.shape[1] - 1)].var() for r in rates])))
+    print('%-12s u-spread(0.5) %5.1f%%  between-SD %.5f   u-spread(0.3) %5.1f%%   peak RMS %.1f%%' %
+          (name, 100 * out['spread_u05']['range_rel'], out['spread_u05']['between_sd'],
+           100 * out['spread_u03']['range_rel'], 100 * out['peak_rms_rel']))
+    return out
+results['mem_relax_pw'] = summarize('mem_relax_pw', rec_t, rec_u, peak)
+rec_t, rec_u, peak = simulate(Q0, fields, d['u_init'], d['tau_init'], NSTEPS, seed=42, record_every=REC, size_scale=scale_exp)
+results['mem_relax_exp'] = summarize('mem_relax_exp', rec_t, rec_u, peak)
+
 QE = np.stack([table_empir(egrp == grp3[r], Q0) for r in range(R)])
 results['mem_empir'] = run('mem_empir', QE, fk, ridx)
 

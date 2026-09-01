@@ -45,13 +45,18 @@ def acc(mask=None, w=None):
         return np.bincount(key, weights=w, minlength=MB).reshape(ntr, NV)
     return np.bincount(key[mask], weights=(None if w is None else w[mask]), minlength=MB).reshape(ntr, NV)
 
-out = dict(
-    n_all=acc(), sum_du=acc(w=du), sum_dtau=acc(w=dtau),
-    n_ne=acc(ne), sum_du_ne=acc(ne, du), sum_dtau_ne=acc(ne, dtau),
-    n_drop=acc(drop), sum_s=acc(drop, -dtau), sum_du_drop=acc(drop, du),
-    sum_lns=acc(drop, np.log(np.where(drop, -dtau, 1.0))),
-    n_age=acc(age), sum_du_age=acc(age, -du),
-)
+def sums(sel):
+    return dict(
+        n_all=acc(sel), sum_du=acc(sel, du), sum_dtau=acc(sel, dtau),
+        n_ne=acc(sel & ne), sum_du_ne=acc(sel & ne, du), sum_dtau_ne=acc(sel & ne, dtau),
+        n_drop=acc(sel & drop), sum_s=acc(sel & drop, -dtau), sum_du_drop=acc(sel & drop, du),
+        sum_lns=acc(sel & drop, np.log(np.where(drop, -dtau, 1.0))),
+        n_age=acc(sel & age), sum_du_age=acc(sel & age, -du),
+    )
+gstep = np.tile(strain[:-1], ntr)              # strain at each step
+out = sums(np.ones(len(du), bool))
+late = sums(gstep >= 0.3)                        # gamma >= 0.3 only (early = total - late)
+out.update({k + '_late': v for k, v in late.items()})
 DS = 100
 np.savez_compressed(SCRATCH + '/memory_stats.npz', cr=cr, rates=np.array(sorted(np.unique(cr))),
                     u_ds=u[:, ::DS], tau_ds=tau[:, ::DS], g_ds=strain[::DS],

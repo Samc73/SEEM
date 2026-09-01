@@ -11,7 +11,9 @@ import pandas as pd
 import time
 
 t0 = time.time()
-SCRATCH = _os.path.join(_HERE, 'out')
+GRID = int(_os.environ.get('GRID', 20))      # inner bins per axis; GRID != 20 writes to out/grid<GRID>/
+SCRATCH = _os.path.join(_HERE, 'out') if GRID == 20 else _os.path.join(_HERE, 'out', 'grid%d' % GRID)
+_os.makedirs(SCRATCH, exist_ok=True)
 u0c = -4.60751861
 N = 49999
 DG = 1e-5
@@ -32,11 +34,11 @@ tt = tau[:, :-1]
 # ---- grid: inner 10x10 on 0.2-99.8% quantiles + outer ring ----
 qs = np.quantile(uu.ravel(), [0.002, 0.998])
 qt = np.quantile(tt.ravel(), [0.002, 0.998])
-ue_in = np.linspace(qs[0], qs[1], 21)
-te_in = np.linspace(qt[0], qt[1], 21)
+ue_in = np.linspace(qs[0], qs[1], GRID + 1)
+te_in = np.linspace(qt[0], qt[1], GRID + 1)
 ue = np.concatenate(([uu.min() - 1e-9], ue_in, [uu.max() + 1e-9]))
 te = np.concatenate(([tt.min() - 1e-9], te_in, [tt.max() + 1e-9]))
-NB = 22
+NB = GRID + 2
 iu = np.clip(np.searchsorted(ue, uu.ravel(), side='right') - 1, 0, NB - 1)
 it = np.clip(np.searchsorted(te, tt.ravel(), side='right') - 1, 0, NB - 1)
 vox = (iu * NB + it).astype(np.int32)

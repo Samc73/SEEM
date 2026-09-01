@@ -40,5 +40,10 @@ run scatter_test.py      # within-preparation run-to-run scatter, data vs arms
 run scatter2.py          # ... decomposed into event counts vs total release per window
 run cluster_test.py      # hazard vs steps since last event (aftershocks)
 run merged_events.py     # runs of consecutive drops merged into avalanches; likelihood contest repeated
-run make_figs_memory.py  # figures/fig16 ... fig20
+run sim_aftershock.py    # two-state (aftershock) hazard in the forward simulation
+run sequence_test.py     # size -> reloading-gap correlation at fixed cell (renewal structure)
+GRID=40 python extract2.py > out/extract2_grid40.log 2>&1   # 42x42 grid for the resolution test
+GRID=40 python fields.py > out/fields_grid40.log 2>&1
+run sim_fine.py          # empirical arm on 22x22 vs 42x42: the variance gap is not resolution
+run make_figs_memory.py  # figures/fig16 ... fig21
 echo "== done ($(date +%H:%M:%S))"

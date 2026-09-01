@@ -203,3 +203,36 @@ Rr.set_title('More bursts than the model, yet a steadier stress budget')
 h1, l1 = Rr.get_legend_handles_labels(); h2, l2 = ax2.get_legend_handles_labels()
 Rr.legend(h1 + h2, l1 + l2, fontsize=7.5, loc='upper left')
 save(fig, 'fig20_clustering.png')
+
+
+# ---- 21: the excess variance is a renewal structure, not the size law, the hazard's memory, or the grid ----
+sa = json.load(open(SCRATCH + '/sim_aftershock.json')); sfn = json.load(open(SCRATCH + '/sim_fine.json'))
+sq = json.load(open(SCRATCH + '/sequence_test.json'))
+fig, (L, Rr) = plt.subplots(1, 2, figsize=(12.5, 4.8))
+labels = ['data', 'Markov model', '+ aftershock hazard', 'empirical, 22×22', 'empirical, 42×42']
+src = [sa['data'], sa['markov'], sa['aftershock'], sfn['grid20'], sfn['grid40']]
+cols = ['k', '0.55', 'purple', 'seagreen', 'darkorange']
+x = np.arange(len(labels))
+fano = [np.mean(r['fano'][1:]) for r in src]; cvs = [np.mean(r['cv_sum'][1:]) for r in src]
+sdt = [r['sd_tau']['0.1'] if '0.1' in r['sd_tau'] else r['sd_tau'][0.1] for r in src]
+L.bar(x - 0.28, np.array(fano) / fano[0], 0.26, color=cols, ec='k', lw=0.5)
+L.bar(x, np.array(cvs) / cvs[0], 0.26, color=cols, ec='k', lw=0.5, hatch='//')
+L.bar(x + 0.28, np.array(sdt) / sdt[0], 0.26, color=cols, ec='k', lw=0.5, hatch='..')
+L.axhline(1, color='k', lw=1)
+L.set_xticks(x, labels, rotation=20, ha='right', fontsize=8.5)
+L.set_ylabel('relative to data')
+from matplotlib.patches import Patch
+L.legend(handles=[Patch(fc='w', ec='k', label='Fano factor of event count (γ 0.1–0.5)'),
+                  Patch(fc='w', ec='k', hatch='//', label='CV of stress released per window'),
+                  Patch(fc='w', ec='k', hatch='..', label='within-preparation SD of τ at γ = 0.1')], fontsize=8, loc='upper left')
+L.set_ylim(0, 1.6)
+L.set_title('Variance gap: not the hazard memory, not the grid')
+gp = sq['gap_profile']; e = np.array(gp['size_edges']); xc = np.sqrt(e[1:] * e[:-1]); y = np.array(gp['rel_gap']); n = np.array(gp['n'])
+ok = n >= 200
+Rr.plot(xc[ok], y[ok], 'o-', color='crimson', lw=2, ms=7, label='MD data, %d cells' % sq['ln gap(k -> k+1)']['ncells'])
+Rr.axhline(1, color='0.5', lw=1, ls='--', label='Markov model in (u,τ): flat within a cell')
+Rr.set_xscale('log'); Rr.set_yscale('log')
+Rr.set_xlabel('size of event k'); Rr.set_ylabel('median strain to the next event  /  cell median')
+Rr.set_title('Reloading: the gap after an event grows with its size (r = %+.2f)' % sq['ln gap(k -> k+1)']['corr'])
+Rr.legend(fontsize=8.5, loc='upper left')
+save(fig, 'fig21_renewal.png')

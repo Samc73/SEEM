@@ -51,5 +51,13 @@ for L in range(1, 9):
 base = (drop & sel_cells & (since > 8)).sum() / (sel_cells & (since > 8)).sum()
 print('hazard vs steps since last event (same cells; baseline = quiet for > 8 steps: %.4f):' % base)
 for L in range(1, 9): print('  lag %d: %.4f  (x%.2f)' % (L, lag_e[L - 1] / lag_n[L - 1], lag_e[L - 1] / lag_n[L - 1] / base))
+# per-cell quiet-baseline hazard (steps with > 8 quiet steps behind them) and the pooled lag multipliers,
+# for a two-state hazard in the simulator: p(v, n) = p_base(v) * m(n), m(n>8) = 1
+quiet = since > 8
+n_q = acc(quiet); e_q = acc(quiet & drop)
+with np.errstate(divide='ignore', invalid='ignore'):
+    p_base = np.where(n_q >= 200, e_q / n_q, np.nan).reshape(NB, NB)
+mult = np.r_[lag_e / lag_n / base, 1.0]                     # m(1..8), then 1 beyond
+np.savez(SCRATCH + '/aftershock.npz', p_base=p_base, mult=mult, size_mult_lag1=srat)
 json.dump(dict(hazard_ratio=float(rat), size_ratio=float(srat), ncells=int(ok.sum()),
                lag_hazard=(lag_e / lag_n).tolist(), baseline=float(base)), open(SCRATCH + '/cluster_test.json', 'w'), indent=1)

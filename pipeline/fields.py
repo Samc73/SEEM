@@ -9,7 +9,8 @@ simulation wanders outside the well-sampled region).
 """
 import numpy as np
 
-SCRATCH = _os.path.join(_HERE, 'out')
+GRID = int(_os.environ.get('GRID', 20))
+SCRATCH = _os.path.join(_HERE, 'out') if GRID == 20 else _os.path.join(_HERE, 'out', 'grid%d' % GRID)
 
 
 def build_fields(min_steps=200, min_events=30):

@@ -15,16 +15,21 @@ SCRATCH = _os.path.join(_HERE, 'out')
 DG = 1e-5
 
 
-def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, size_scale=None, window_steps=None):
+def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, size_scale=None, window_steps=None, aftershock=None):
     """Q may be (NB,NB,K) shared by all trajectories, or (G,NB,NB,K) with
     `group` giving each trajectory's table index (preparation-aware arms).
     `size_scale(step)` may return a per-trajectory multiplier applied to every
-    sampled event size (a strain-dependent ceiling; exact up to the eps region)."""
+    sampled event size (a strain-dependent ceiling; exact up to the eps region).
+    `aftershock=(p_base, mult)` replaces the hazard by p_base(v) * mult[n-1], n the
+    steps since the trajectory's last event (mult[-1] applies beyond its length)."""
     NB = int(np.sqrt(fields['mu2'].size))
     ue, te = fields['ue'], fields['te']
     mu2 = fields['mu2'].ravel()
     gd = fields['gdrift'].ravel()
     pd_ = fields['p_drop'].ravel()
+    if aftershock is not None:
+        pd_ = aftershock[0].ravel(); mult = np.asarray(aftershock[1], float)
+        since = np.full(len(u0), len(mult), int)
     pa_ = fields['p_age'].ravel()
     ma_ = np.maximum(fields['m_age'].ravel(), 1e-9)
     ka_ = fields['ka'].ravel()
@@ -52,6 +57,8 @@ def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, siz
         v = iu * NB + it
         r = rng.random(n)
         pdv, pav = pd_[v], pa_[v]
+        if aftershock is not None:
+            pdv = np.minimum(pdv * mult[np.minimum(since, len(mult)) - 1], 0.95)
         ev = r < pdv
         ag = (~ev) & (r < pdv + pav)
         el = ~(ev | ag)
@@ -72,6 +79,8 @@ def simulate(Q, fields, u0, t0, nsteps, seed=0, record_every=10, group=None, siz
                 cnt[ev, i // window_steps] += 1; ssum[ev, i // window_steps] += s
             vk = (off[ev] + v[ev]) if per_group_k else v[ev]
             u[ev] += ka_[vk] + kb_[vk] * s + ks_[vk] * rng.standard_normal(ne)
+        if aftershock is not None:
+            since = np.where(ev, 1, since + 1)
         na = int(ag.sum())
         if na:
             u[ag] -= rng.exponential(ma_[v[ag]])

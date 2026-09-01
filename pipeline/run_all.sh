@@ -1,7 +1,7 @@
 #!/bin/bash
 # Reproduce every number and figure in README.md from df_clean.pkl.
 # Order matters; each step reads the outputs of the earlier ones from pipeline/out/.
-# Wall time on an 8-core laptop: ~35 min (SR fleet ~5 min, complexity-9 audit ~11 min,
+# Wall time on an 8-core laptop: ~60 min (SR fleet ~5 min, complexity-9 audit ~11 min,
 # three forward-simulation arms ~2 min each).
 set -e
 cd "$(dirname "$0")"
@@ -54,5 +54,6 @@ run sim_twoclass.py      # two-class hazard: small events Markov, large events r
 run size_reload.py       # large-event size vs reloaded stress; consecutive sizes
 run persistence_test.py  # persistence of deviations from the preparation mean, data vs model
 run sim_persample.py     # per-sample ceiling factor from the initial energy, no new parameter (Fig. 22)
+run sim_unoise.py        # u-channel noise terms switched off: tau scatter unchanged
 run make_figs_memory.py  # figures/fig16 ... fig22
 echo "== done ($(date +%H:%M:%S))"

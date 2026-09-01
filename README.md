@@ -631,7 +631,12 @@ deviation should rise from the model's 0.41 / 0.08 / 0.07 / 0.08 (γ = 0.1
 0.44 / 0.27 / 0.22 / 0.17 (Figure 22), and tripling κ overshoots (0.41 at
 γ = 0.3). This is the slow variable acting on individual samples with the
 strength the preparations dictate. It does not touch the τ scatter — the
-ninth exclusion for the variance gap, which stays open.
+ninth exclusion for the variance gap. A tenth: switching off the model's
+u-channel noise terms (the Gaussian residual of the energy coupling, the
+aging channel, or both) changes the τ scatter by under 1%, so the excess
+is not leaking in from a noisy energy coordinate either; it enters through
+the event channel itself, whose per-cell size moments are the data's own.
+The gap stays open, and Section 11 says what would be needed to close it.
 
 ![Per-sample slow variable](figures/fig22_persample.png)
 
@@ -718,14 +723,14 @@ event log; the dependence is confined to the aftershock regime.
 | The hidden variable relaxes with strain | **supported** (Fig. 19): β falls −0.21 → −0.04 from γ = 0.15 to 0.45 within fixed u bands; γ_r ≈ 0.2; a smaller energy-coupling memory persists to γ = 0.5 |
 | The step process is Markov in (u,τ) at the 10⁻⁵ strain scale | **contradicted** (Fig. 20): hazard ×20 on the step after an event, 5-step aftershock decay; count Fano 1.3–1.6 vs 1.0; run-to-run scatter over-predicted by 25–30% |
 | The ceiling law survives merging consecutive drop steps into avalanches | **supported**: ΔAIC over TPL grows to 117–213; s_c moves < 2%; k shifts +0.05 |
-| The 25–30% variance excess is a size-law, hazard-memory, reloading, size-coupling or grid effect | **contradicted** for all eight candidates (Fig. 21, Section 9 list); open |
+| The 25–30% variance excess is a size-law, hazard-memory, reloading, size-coupling, grid, slow-variable or u-noise effect | **contradicted** for all ten candidates (Fig. 21, Section 9); open |
 | Large events are reload-dependent | **supported**: large-event hazard 1.5× after 0.1–0.3 reloaded stress since the last large event; Fano 0.51 vs 0.71 in the model; small events flat |
 | The slow variable is visible per trajectory | **supported**: initial-u deviation persists 0.63 / 0.24 (γ = 0.1 / 0.3) in data vs 0.41 / 0.07 in the model |
 | The per-sample factor exp(κ·δu₀), κ fixed by β, predicts that persistence | **supported, parameter-free** (Fig. 22): 0.44 / 0.27 / 0.22 / 0.17 vs data 0.63 / 0.27 / 0.24 / 0.18; 3κ overshoots |
 | Steady state / convergence of preparations | not in the data; the model's convergence prediction (Fig. 15) is structurally baked in — needs longer runs |
 
 **Next, in order of value:** (0) the variance gap has now exhausted what
-this dataset can test at fixed (u,τ) (nine exclusions); the remaining
+this dataset can test at fixed (u,τ) (ten exclusions); the remaining
 lever is a per-step observable that is not (u,τ) — the same MD output
 item (2) asks for — or the stress fluctuation spectrum at strain scales
 below 10⁻³, which needs the raw per-step data of a few runs rather than
@@ -759,7 +764,7 @@ the ceiling; (4) reverse loading, unchanged from the first pass.
 | [pipeline/sim_aftershock.py](pipeline/sim_aftershock.py), [pipeline/sim_fine.py](pipeline/sim_fine.py), [pipeline/sequence_test.py](pipeline/sequence_test.py) | aftershock-hazard and 42×42-grid simulations; size→gap correlation (Fig. 21) |
 | [pipeline/renewal_hazard.py](pipeline/renewal_hazard.py), [pipeline/renewal_big.py](pipeline/renewal_big.py), [pipeline/sim_renewal.py](pipeline/sim_renewal.py), [pipeline/sim_twoclass.py](pipeline/sim_twoclass.py) | hazard vs reloaded stress (all / large events); renewal and two-class simulations |
 | [pipeline/sequence_compare.py](pipeline/sequence_compare.py), [pipeline/large_events.py](pipeline/large_events.py), [pipeline/size_reload.py](pipeline/size_reload.py), [pipeline/persistence_test.py](pipeline/persistence_test.py) | sequence statistics on the simulation's own event log; large-event Fano; size–reload and size–size couplings; persistence of deviations |
-| [pipeline/sim_persample.py](pipeline/sim_persample.py) | per-trajectory ceiling factor from the initial energy, κ fixed by β (Fig. 22) |
+| [pipeline/sim_persample.py](pipeline/sim_persample.py), [pipeline/sim_unoise.py](pipeline/sim_unoise.py) | per-trajectory ceiling factor from the initial energy, κ fixed by β (Fig. 22); u-channel noise terms switched off |
 | [pipeline/make_figs_single.py](pipeline/make_figs_single.py), [pipeline/make_figs_memory.py](pipeline/make_figs_memory.py) | Figures 1–15 and 16–22 |
 | [library/symreg.py](library/symreg.py) | the exhaustive symbolic-regression engine (grammar, variable projection, fingerprint dedup, exact Pareto fronts) |
 | [library/dist.py](library/dist.py) | normalized-MLE machinery: candidate densities, AIC, trajectory-blocked CV, moments, sampling |

@@ -242,3 +242,21 @@ Rr.set_xlabel('size of event k'); Rr.set_ylabel('median strain to the next event
 Rr.set_title('Gap after an event vs its size: mostly the aftershock regime')
 Rr.legend(fontsize=8, loc='lower right')
 save(fig, 'fig21_renewal.png')
+
+
+# ---- 22: the slow variable one trajectory at a time (parameter-free prediction) ----
+sp = json.load(open(SCRATCH + '/sim_persample.json'))
+fig, A = plt.subplots(figsize=(7.4, 5.0))
+gs_ = [0.1, 0.2, 0.3, 0.5]
+sty = {'data': ('o-', 'k', 2.6, 'MD data'), 'model4': (':', '0.5', 1.8, 'README model'),
+       'rate memory': ('--', 'crimson', 1.8, 'ceiling × (rate)$^{\\beta}$ (Fig. 17)'),
+       'rate + per-sample': ('-', 'seagreen', 2.2, '… × exp(κ·δu₀) per trajectory, κ fixed by β (no new parameter)'),
+       'rate + per-sample x3': ('-.', 'darkorange', 1.4, '… with 3κ (overshoots)')}
+for k, (ls, c, lw, lab) in sty.items():
+    y = [sp[k]['persist_u'][str(g)] if str(g) in sp[k]['persist_u'] else sp[k]['persist_u'][g] for g in gs_]
+    A.plot(gs_, y, ls, color=c, lw=lw, ms=7 if k == 'data' else 0, label=lab, marker='o' if k == 'data' else None)
+A.set_xlabel('strain $\\gamma$'); A.set_ylabel('corr( δu at γ = 0 , δu at γ )  within preparation')
+A.set_ylim(0, 0.7); A.set_xlim(0.05, 0.55)
+A.set_title('A sample remembers its initial energy: the slow variable per trajectory')
+A.legend(fontsize=8.5, loc='upper right')
+save(fig, 'fig22_persample.png')

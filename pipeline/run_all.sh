@@ -53,5 +53,6 @@ run renewal_big.py       # hazard vs stress reloaded since the last LARGE event
 run sim_twoclass.py      # two-class hazard: small events Markov, large events reload-dependent
 run size_reload.py       # large-event size vs reloaded stress; consecutive sizes
 run persistence_test.py  # persistence of deviations from the preparation mean, data vs model
+run sim_persample.py     # per-sample ceiling factor from the initial energy, no new parameter (Fig. 22)
 run make_figs_memory.py  # figures/fig16 ... fig22
 echo "== done ($(date +%H:%M:%S))"

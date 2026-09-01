@@ -616,9 +616,30 @@ thing the data show that the model lacks at the individual-trajectory
 level is the slow variable itself: a sample's initial *energy* deviation
 from its preparation mean is still 0.63-correlated with its deviation at
 γ = 0.1 and 0.24 at γ = 0.3, against 0.41 and 0.07 in the model — the same
-memory as Figures 16–19, seen one trajectory at a time. Whether a
-per-sample slow variable also narrows the stress fluctuations is the open
-question this thread leaves; it is listed below.
+memory as Figures 16–19, seen one trajectory at a time.
+
+**A parameter-free check of that reading.** If the slow variable is what
+sets the ceiling factor across preparations, (rate/rate_mid)^β, and the
+preparations differ in initial energy by u₀(rate), then the same relation
+should hold *within* a preparation: each trajectory gets a factor
+exp(κ·δu₀) with δu₀ its initial energy deviation from the preparation mean
+and κ = β · d ln(rate)/d u₀ = −43 per unit u — no new parameter. The
+within-preparation spread of u₀ is only 0.00076, so the factors spread by
+± 3%, and the prediction is sharp: the persistence of the initial energy
+deviation should rise from the model's 0.41 / 0.08 / 0.07 / 0.08 (γ = 0.1
+/ 0.2 / 0.3 / 0.5) toward the data's 0.63 / 0.27 / 0.24 / 0.18. It does:
+0.44 / 0.27 / 0.22 / 0.17 (Figure 22), and tripling κ overshoots (0.41 at
+γ = 0.3). This is the slow variable acting on individual samples with the
+strength the preparations dictate. It does not touch the τ scatter — the
+ninth exclusion for the variance gap, which stays open.
+
+![Per-sample slow variable](figures/fig22_persample.png)
+
+**Figure 22 — the slow variable, one trajectory at a time.** Correlation
+between a trajectory's initial energy deviation from its preparation mean
+and its deviation at strain γ. Data, the README model, the preparation-level
+ceiling memory of Figure 17, and the same with the per-trajectory factor
+exp(κ·δu₀) at the κ fixed by the between-preparation relation.
 
 ![Renewal](figures/fig21_renewal.png)
 
@@ -700,16 +721,17 @@ event log; the dependence is confined to the aftershock regime.
 | The 25–30% variance excess is a size-law, hazard-memory, reloading, size-coupling or grid effect | **contradicted** for all eight candidates (Fig. 21, Section 9 list); open |
 | Large events are reload-dependent | **supported**: large-event hazard 1.5× after 0.1–0.3 reloaded stress since the last large event; Fano 0.51 vs 0.71 in the model; small events flat |
 | The slow variable is visible per trajectory | **supported**: initial-u deviation persists 0.63 / 0.24 (γ = 0.1 / 0.3) in data vs 0.41 / 0.07 in the model |
+| The per-sample factor exp(κ·δu₀), κ fixed by β, predicts that persistence | **supported, parameter-free** (Fig. 22): 0.44 / 0.27 / 0.22 / 0.17 vs data 0.63 / 0.27 / 0.24 / 0.18; 3κ overshoots |
 | Steady state / convergence of preparations | not in the data; the model's convergence prediction (Fig. 15) is structurally baked in — needs longer runs |
 
-**Next, in order of value:** (0) a per-sample slow variable in the
-forward model — initialise each trajectory's ceiling factor from its own
-initial energy deviation (the data say that deviation persists 3× longer
-than the model allows) and test whether it narrows the τ fluctuations;
-this is the last candidate for the variance gap that the data point to,
-and it costs nothing new; keep the aftershock term and the two-class
-reload hazard already built (`sim_aftershock.py`, `sim_twoclass.py`) — they
-fix the yield peaks and half the large-event regularity;
+**Next, in order of value:** (0) the variance gap has now exhausted what
+this dataset can test at fixed (u,τ) (nine exclusions); the remaining
+lever is a per-step observable that is not (u,τ) — the same MD output
+item (2) asks for — or the stress fluctuation spectrum at strain scales
+below 10⁻³, which needs the raw per-step data of a few runs rather than
+new simulations; keep the aftershock term and the two-class reload hazard
+already built (`sim_aftershock.py`, `sim_twoclass.py`) — they fix the
+yield peaks and half the large-event regularity;
 (1) longer strain runs — every open question above
 touches γ > 0.5, and whether the coupling memory relaxes like the ceiling
 memory (γ_r ≈ 0.2) needs one preparation followed to γ ≈ 2; (2) a per-step
@@ -737,12 +759,13 @@ the ceiling; (4) reverse loading, unchanged from the first pass.
 | [pipeline/sim_aftershock.py](pipeline/sim_aftershock.py), [pipeline/sim_fine.py](pipeline/sim_fine.py), [pipeline/sequence_test.py](pipeline/sequence_test.py) | aftershock-hazard and 42×42-grid simulations; size→gap correlation (Fig. 21) |
 | [pipeline/renewal_hazard.py](pipeline/renewal_hazard.py), [pipeline/renewal_big.py](pipeline/renewal_big.py), [pipeline/sim_renewal.py](pipeline/sim_renewal.py), [pipeline/sim_twoclass.py](pipeline/sim_twoclass.py) | hazard vs reloaded stress (all / large events); renewal and two-class simulations |
 | [pipeline/sequence_compare.py](pipeline/sequence_compare.py), [pipeline/large_events.py](pipeline/large_events.py), [pipeline/size_reload.py](pipeline/size_reload.py), [pipeline/persistence_test.py](pipeline/persistence_test.py) | sequence statistics on the simulation's own event log; large-event Fano; size–reload and size–size couplings; persistence of deviations |
-| [pipeline/make_figs_single.py](pipeline/make_figs_single.py), [pipeline/make_figs_memory.py](pipeline/make_figs_memory.py) | Figures 1–15 and 16–21 |
+| [pipeline/sim_persample.py](pipeline/sim_persample.py) | per-trajectory ceiling factor from the initial energy, κ fixed by β (Fig. 22) |
+| [pipeline/make_figs_single.py](pipeline/make_figs_single.py), [pipeline/make_figs_memory.py](pipeline/make_figs_memory.py) | Figures 1–15 and 16–22 |
 | [library/symreg.py](library/symreg.py) | the exhaustive symbolic-regression engine (grammar, variable projection, fingerprint dedup, exact Pareto fronts) |
 | [library/dist.py](library/dist.py) | normalized-MLE machinery: candidate densities, AIC, trajectory-blocked CV, moments, sampling |
 | [library/stz.py](library/stz.py), [library/avalanche.py](library/avalanche.py) | first-pass field extraction and TPL fitting (kept for comparison) |
 | [REPORT.md](REPORT.md) | first-pass technical report (measured-field route + STZ scrutiny) |
-| figures/fig01 … fig21 | this pass (one plot per figure; 16–21 are Section 9) |
+| figures/fig01 … fig22 | this pass (one plot per figure; 16–22 are Section 9) |
 | figures/state_sufficiency.png … steady_state.png | first pass |
 
 Raw data (`df_clean.pkl`, 2.4 GB) is not distributed with the repository.

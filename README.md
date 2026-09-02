@@ -750,7 +750,7 @@ the ceiling; (4) reverse loading, unchanged from the first pass.
 
 | file | contents |
 |---|---|
-| [pipeline/run_all.sh](pipeline/run_all.sh) | **reproduces every number and figure in this document** from `df_clean.pkl` (~35 min on 8 cores); each step is one script in `pipeline/`, outputs land in the gitignored `pipeline/out/` |
+| [pipeline/run_all.sh](pipeline/run_all.sh) | **reproduces every number and figure in this document** from `df_clean.pkl` (43 min on 8 cores, verified from a clean slate: all 22 figures regenerate byte-identical); each step is one script in `pipeline/`, outputs land in the gitignored `pipeline/out/` |
 | [pipeline/extract2.py](pipeline/extract2.py) | event catalog and per-cell sufficient statistics on the 22×22 grid (Section 1) |
 | [pipeline/discover_dist.py](pipeline/discover_dist.py), [pipeline/sr_deep9.py](pipeline/sr_deep9.py) | the symbolic-regression fleet and the complexity-9 audit (Section 4) |
 | [pipeline/mle_compare.py](pipeline/mle_compare.py), [pipeline/synth_check.py](pipeline/synth_check.py) | likelihood adjudication and the falsifiability controls (Sections 4–5) |

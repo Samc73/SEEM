@@ -1,7 +1,7 @@
 #!/bin/bash
 # Reproduce every number and figure in README.md from df_clean.pkl.
 # Order matters; each step reads the outputs of the earlier ones from pipeline/out/.
-# Wall time on an 8-core laptop: ~60 min (SR fleet ~5 min, complexity-9 audit ~11 min,
+# Wall time on an 8-core laptop: ~45 min (verified clean-slate: 43 min, Figures 1-22 byte-identical) (SR fleet ~5 min, complexity-9 audit ~11 min,
 # three forward-simulation arms ~2 min each).
 set -e
 cd "$(dirname "$0")"

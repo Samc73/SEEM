@@ -147,11 +147,10 @@ well-populated cell of the state grid, with its full range of event sizes
 (five decades) on log-log axes. The inset locates that cell (red box) on the
 dataset's probability density over the (u,τ) plane, at the well-sampled
 high-u ridge. Black points: the measured density. Red: the discovered ceiling
-law. Blue dashed: the best truncated power law (TPL). Green dotted: the best
-lognormal. Orange dash-dot: the Budrikis et al. (2017) mean-field-corrected
-form, with the same ε rounding so it can be fitted on the full range. All
-four are maximum-likelihood fits of proper densities. The ceiling law is the
-only one that captures both ends: the flattening below
+law. Blue dashed: the best truncated power law (TPL). Orange dash-dot: the
+Budrikis et al. (2017) mean-field-corrected form, with the same ε rounding so
+it can be fitted on the full range. All three are maximum-likelihood fits of
+proper densities. The ceiling law is the only one that captures both ends: the flattening below
 s ≈ 3×10⁻⁵ (the ε rounding) and the abrupt termination at the dotted vertical
 line (the ceiling s_c), where the TPL's exponential tail decays too softly and
 overshoots. On the full range the ceiling law beats the TPL by ΔAIC ≈ 200 to

@@ -74,10 +74,6 @@ lnt = -rt['theta'][0] * np.log(g) - g / np.exp(rt['theta'][1])
 wt = np.exp(lnt - lnt.max())
 A.plot(g, wt / np.trapezoid(wt, g), '--', color='royalblue', lw=1.8,
        label=r'$s^{-\kappa}e^{-s/s^*}$ (truncated power law)')
-rl = dist.fit('lognormal', s, 1e-6)
-lnl = -np.log(g) - (np.log(g) - rl['theta'][0]) ** 2 / (2 * np.exp(2 * rl['theta'][1]))
-wl = np.exp(lnl - lnl.max())
-A.plot(g, wl / np.trapezoid(wl, g), ':', color='seagreen', lw=1.8, label='lognormal')
 rb = dist.fit('ldw_eps', s, 1e-6)      # Budrikis et al. 2017 eq. 1, with the same eps rounding
 lnb = dist._lnf('ldw_eps', g, rb['theta'], hi)
 wb = np.exp(lnb - lnb.max())

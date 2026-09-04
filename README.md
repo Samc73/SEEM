@@ -148,8 +148,10 @@ well-populated cell of the state grid, with its full range of event sizes
 dataset's probability density over the (u,τ) plane, at the well-sampled
 high-u ridge. Black points: the measured density. Red: the discovered ceiling
 law. Blue dashed: the best truncated power law (TPL). Green dotted: the best
-lognormal. All three are maximum-likelihood fits of proper densities. The
-ceiling law is the only one that captures both ends: the flattening below
+lognormal. Orange dash-dot: the Budrikis et al. (2017) mean-field-corrected
+form, with the same ε rounding so it can be fitted on the full range. All
+four are maximum-likelihood fits of proper densities. The ceiling law is the
+only one that captures both ends: the flattening below
 s ≈ 3×10⁻⁵ (the ε rounding) and the abrupt termination at the dotted vertical
 line (the ceiling s_c), where the TPL's exponential tail decays too softly and
 overshoots. On the full range the ceiling law beats the TPL by ΔAIC ≈ 200 to
@@ -172,7 +174,9 @@ placed well inside the data rather than at their edge. The mismatch is in
 the small-size curvature: for τ below 1.5 the exp(C√u) factor bends the
 density upward, which the events do not do (`pipeline/ldw_compare.py`,
 figures/fig23_ldw.png). Adding the ε rounding and fitting the full range
-leaves it +80 to +106 behind the ceiling law.
+leaves it +80 to +106 behind the ceiling law; on the log-log axes of Figure 1
+that version is nearly indistinguishable from the ceiling law by eye, which
+is a reminder that the per-event likelihood, not the plot, is what decides.
 
 ![The collapse](figures/fig02_collapse.png)
 

@@ -159,6 +159,21 @@ free-exponent version wins AIC in 8 of 8 well-populated cells (margins 67 to
 cross-validation in 5 of 8, with the stretched-cutoff TPL close behind in the
 other three.
 
+A second literature form was put through the same contest afterwards: the
+first-order correction to the mean-field avalanche distribution used by
+Budrikis et al. (Nature Communications 8, 15928, 2017, their eq. 1),
+P(S) ∝ S⁻ᵗ exp(C√u − ¼B u^δ) with u = S/S_max and B, C, δ fixed by τ, so
+two free parameters like the TPL. Fitted by maximum likelihood on the same
+events it does worse than the TPL in all eight cells: ΔAIC +130 to +268
+against the ceiling law (TPL +67 to +120), KS 0.045 to 0.061 (ceiling
+0.010 to 0.022). The fitted τ is 0.99 in every cell, and the fitted S_max
+sits at 0.18 to 0.26 of the largest observed event, so the form's cutoff is
+placed well inside the data rather than at their edge. The mismatch is in
+the small-size curvature: for τ below 1.5 the exp(C√u) factor bends the
+density upward, which the events do not do (`pipeline/ldw_compare.py`,
+figures/fig23_ldw.png). Adding the ε rounding and fitting the full range
+leaves it +80 to +106 behind the ceiling law.
+
 ![The collapse](figures/fig02_collapse.png)
 
 **Figure 2. The universality claim in one plot.** Every test cell's density,

@@ -12,6 +12,7 @@ run extract2.py          # event catalog + per-voxel sufficient statistics (22x2
 run event_tids.py        # trajectory id of every event (blocked CV, memory test)
 run discover_dist.py     # SR fleet: 12 cells + weighting/window variants -> sr_dist_results.json
 run mle_compare.py       # likelihood adjudication of the SR candidates -> mle_compare.json
+run ldw_compare.py       # the Budrikis et al. (2017) mean-field-corrected form on the same cells -> fig23
 run scale_field.py       # global shape + per-voxel ceiling (tied exponents) -> scale_fields.npz
 run refit_m.py           # decouple m from k; ceiling field s_c4 -> scale4.npz
 run fields.py            # drift, hazard, jump coupling, aging fields -> pdmp_fields.npz

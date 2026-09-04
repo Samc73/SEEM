@@ -20,6 +20,10 @@ Families (theta layout):
              (c - s)^m / (s + eps)^k -- decoupled exponents, to test whether
              the tie m = k that SR found is real or an artifact of its
              complexity budget
+  ldw        (tau, ln Smax)          Budrikis et al. 2017 eq. 1 (Le Doussal-Wiese first-order
+             correction to mean field): S^-tau exp(C sqrt(S/Smax) - B/4 (S/Smax)^delta),
+             B, C, delta functions of tau
+  ldw_eps    (tau, ln Smax, ln eps)  the same with (S + eps)^-tau, for full-range fits
 """
 import numpy as np
 from scipy.optimize import minimize
@@ -60,6 +64,21 @@ def _lnf(name, s, th, smax):
         msk = s < c
         out[msk] = mm * np.log(c - s[msk]) - k * np.log(s[msk] + eps)
         return out
+    if name in ('ldw', 'ldw_eps'):
+        # Budrikis et al. (2017) eq. 1, from Le Doussal & Wiese: first-order correction to the
+        # mean-field avalanche size distribution.  S^-tau exp(C sqrt(u) - B/4 u^delta), u = S/Smax,
+        # with B, C, delta fixed by tau (A is absorbed by the numerical normalization).
+        # 'ldw_eps' replaces S^-tau by (S + eps)^-tau so it can be fitted on the full size range.
+        gE = 0.5772156649
+        tau, lS = th[0], th[1]
+        eps = np.exp(th[2]) if name == 'ldw_eps' else 0.0
+        B = 5 + gE - 2 * tau * (4 - gE) / 3
+        C = 2 * np.sqrt(np.pi) - 4 * np.sqrt(np.pi) * tau / 3
+        delta = 2 * (1 - tau / 3)
+        if delta <= 0:
+            return np.full_like(s, -np.inf)
+        u = s / np.exp(lS)
+        return -tau * np.log(s + eps) + C * np.sqrt(u) - 0.25 * B * u ** delta
     raise ValueError(name)
 
 
@@ -74,12 +93,13 @@ def _upper(name, th, smax):
 
 
 NPAR = dict(tpl=2, tpl_beta=3, lognormal=2, powerlaw=1, sqrtlog=2,
-            invpow=3, invpow4=4)
+            invpow=3, invpow4=4, ldw=2, ldw_eps=3)
 X0 = dict(tpl=[1.0, np.log(0.05)], tpl_beta=[1.0, np.log(0.05), 0.0],
           lognormal=[-5.0, np.log(2.0)], powerlaw=[1.2],
           sqrtlog=[3.0, np.log(0.5)],
           invpow=[1.0, np.log(3e-4), np.log(0.15)],
-          invpow4=[1.0, 1.0, np.log(3e-4), np.log(0.15)])
+          invpow4=[1.0, 1.0, np.log(3e-4), np.log(0.15)],
+          ldw=[1.3, np.log(0.3)], ldw_eps=[1.3, np.log(0.3), np.log(3e-4)])
 
 
 def _grid(xmin, hi, bounded, npts=4000):

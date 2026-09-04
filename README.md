@@ -769,7 +769,7 @@ Next, in order of value:
 | [library/dist.py](library/dist.py) | normalized-MLE machinery: candidate densities, AIC, trajectory-blocked CV, moments, sampling |
 | [library/stz.py](library/stz.py), [library/avalanche.py](library/avalanche.py) | first-pass field extraction and TPL fitting (kept for comparison) |
 | [REPORT.md](REPORT.md) | first-pass technical report (measured-field route + STZ scrutiny) |
-| [SEEM_project_deck.pptx](SEEM_project_deck.pptx) | 20-slide status deck for this pass (built by [pipeline/build_deck.py](pipeline/build_deck.py) from the figures) |
+| [SEEM_project_deck.pptx](SEEM_project_deck.pptx) | 10-slide deck: variables, the SR library, the discovered law and its comparisons, the forward model and the energy-convergence problem, and the ceiling-memory fix (built by [pipeline/build_deck.py](pipeline/build_deck.py) from the figures) |
 | figures/fig01 … fig22 | this pass (one plot per figure; 16 to 22 are Section 9) |
 | figures/state_sufficiency.png … steady_state.png | first pass |
 

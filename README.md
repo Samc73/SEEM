@@ -119,7 +119,9 @@ never appears on a single Pareto front. What recurs instead, across cells,
 weightings, and windows, is the structure `log(1/(s+ε) − C)`, which algebra
 rearranges into
 
-$$\rho(s) \;\propto\; \frac{(s_c-s)^{m}}{(s+\varepsilon)^{k}},\qquad 0<s<s_c$$
+```math
+\rho(s) \propto \frac{(s_c-s)^{m}}{(s+\varepsilon)^{k}}, \qquad 0<s<s_c
+```
 
 a power-law decay that does not fade out exponentially but terminates at a
 finite ceiling s_c, just above the largest observed event. Physically that is
@@ -199,8 +201,9 @@ land on one side of it.
 
 ## 5. The law
 
-$$\boxed{\;P(s \mid u,\tau) \;=\; \frac{1}{Z}\,\frac{\bigl(s_c(u,\tau)-s\bigr)^{m}}{(s+\varepsilon)^{k}}\,,\qquad
-k = 0.88,\quad m = 2.3,\quad \varepsilon = 2.8\times10^{-5}\;}$$
+```math
+P(s \mid u,\tau) = \frac{1}{Z} \frac{\bigl(s_c(u,\tau)-s\bigr)^{m}}{(s+\varepsilon)^{k}}, \qquad k = 0.88, \quad m = 2.3, \quad \varepsilon = 2.8\times10^{-5}
+```
 
 Three global constants. All dependence on state, and (Section 6) on
 preparation history, enters through the single ceiling field s_c(u,τ). The

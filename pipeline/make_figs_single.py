@@ -61,7 +61,7 @@ n, _ = np.histogram(s, bins=be)
 xc = np.sqrt(be[:-1] * be[1:])
 keep = n > 0
 rho = n / np.diff(be) / len(s)
-A.loglog(xc[keep], rho[keep], 'o', ms=4, color='0.25', label='measured (one cell, 6,706 events)')
+A.loglog(xc[keep], rho[keep], 'o', ms=4, color='0.25', label='measured')
 g = np.geomspace(lo, hi * 1.02, 800)
 c = sc4[iu, it]
 ln4 = np.where(g < c, MG * np.log(np.maximum(c - g, 1e-300)) - KG * np.log(g + EG), -np.inf)

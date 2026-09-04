@@ -212,42 +212,6 @@ def img_fit(s, path, x, y, w, h):
     s.shapes.add_picture(P + path, Inches(x + (w - ww) / 2), Inches(y + (h - hh) / 2), Inches(ww), Inches(hh))
 
 
-# ------------------------------------------------ 4 (new) the form at each budget
-s = slide()
-title(s, 'What the search finds at each complexity budget')
-tf = textbox(s, 0.7, 1.2, 12.0, 0.4)
-run(para(tf, True), 'The audited cell (6,706 events): best formula for ln ρ(s) at each complexity, and its RMS misfit', size=16, bold=True, color=NAVY)
-table = [
-    ('budget', 'form found', 'misfit', 'what it is'),
-    ('1', 's', '1.22', 'a straight line'),
-    ('3', 'log s', '0.30', 'a pure power law, ρ ∝ s⁻ᵏ'),
-    ('5', 'log(s + 4.6×10⁻⁴)', '0.21', 'a power law rounded off at small s'),
-    ('6', '√log(1/s)', '0.143', 'the √log family: fits the bins, fails the likelihood test (ΔAIC ≈ +20,000)'),
-    ('7', '√log(0.79/s)', '0.142', 'same family, one constant added'),
-    ('8', 'log(1/(s + 1.6×10⁻⁴) − 2.25)', '0.118', 'the ceiling law (below)'),
-    ('9', 's + √(−0.93 − log s)', '0.103', 'the √log family again, with a linear term; still loses under likelihood'),
-]
-tbl_shape = s.shapes.add_table(len(table), 4, Inches(0.7), Inches(1.7), Inches(11.9), Inches(3.05))
-tbl = tbl_shape.table
-for ci, wdt in enumerate([1.0, 3.6, 1.0, 6.3]):
-    tbl.columns[ci].width = Inches(wdt)
-tbl._tbl.tblPr.set('bandRow', '0'); tbl._tbl.tblPr.set('firstRow', '1')
-for ri, row in enumerate(table):
-    for ci, txt in enumerate(row):
-        cell = tbl.cell(ri, ci)
-        cell.fill.solid(); cell.fill.fore_color.rgb = NAVY if ri == 0 else WHITE
-        cell.margin_left = Inches(0.08); cell.margin_right = Inches(0.06); cell.margin_top = Inches(0.03); cell.margin_bottom = Inches(0.03)
-        cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-        p = cell.text_frame.paragraphs[0]
-        math = (ci == 1 and ri > 0)
-        run(p, txt, size=13 if ri == 0 else (14 if math else 13), bold=(ri == 0), color=WHITE if ri == 0 else (NAVY if math else INK),
-            font='Cambria Math' if math else 'Calibri')
-block(s, 0.7, 4.95, 12.0, 1.9, 'How the complexity-8 form becomes the law', [
-    'The fit is ln ρ = a·f(s) + b with f = log(1/(s + ε) − C).  Exponentiating: **ρ ∝ [1/(s + ε) − C]ᵃ = [C(s_c − s)/(s + ε)]ᵃ** with **s_c = 1/C − ε**',
-    'So the search hands over a bounded form with tied exponents, m = k = a.  The likelihood stage then frees m from k (8 of 8 cells prefer it)',
-    'Complexity 9 still lowers the misfit, but only by promoting a family the likelihood had already rejected. No new family appears, and the complexity-8 knee is unchanged',
-], size=14)
-
 # -------------------------------------------------------------- 5 the law
 s = slide()
 title(s, 'The discovered law')
@@ -259,22 +223,23 @@ rows(s, [
     ('s_c(u, τ)', '**the only place the state enters**: 146× range over the plane (0.02 cold and unloaded, 3 in flow); ln s_c ≈ (u-part) + (τ-part) at 95.5% of the variance'),
     ('Z', 'normalization, computed numerically'),
 ], 0.7, 2.75, 12.0, size=15)
-block(s, 0.7, 5.15, 12.0, 1.4, 'Versus the usual truncated power law  s⁻ᵏ e^(−s/s*)', [
-    'An exponential tail suppresses large events but never forbids them',
-    'It sits inside the search space at complexity 7 and never made a Pareto front; it loses every likelihood contest that follows',
-], size=14)
+block(s, 0.7, 5.15, 12.0, 1.5, 'Versus the literature forms (slide 4)', [
+    'Truncated power law s⁻ᵏ e^(−s/s*): an exponential tail suppresses large events but never forbids them. It sits inside the search space at complexity 7, never made a Pareto front, and loses every likelihood contest that follows',
+    'Budrikis et al. (2017) eq. 1, fitted the same way: behind the TPL in all eight large cells (ΔAIC +130 to +268 vs the ceiling law; TPL +67 to +120)',
+], size=13.5)
 
-# -------------------------------------------------------------- 6 one cell
+# -------------------------------------------------------------- 6b where the margin comes from (after the hand-edited one-cell slide)
 s = slide()
-title(s, 'Performance: one cell, three candidate laws')
-img_fit(s, 'fig01_size_law.png', 0.55, 1.3, 6.9, 5.0)
-block(s, 7.75, 1.4, 5.0, 5.0, 'The largest cell, 6,706 events, five decades of s', [
-    'Black: measured density. **Red: ceiling law**. Blue dashed: best truncated power law (TPL). Green dotted: best lognormal',
-    'All three are maximum-likelihood fits of proper densities on the same events',
-    'Only the ceiling law gets **both ends**: the flattening below 3 × 10⁻⁵ and the stop at the dotted line (s_c)',
-    'The TPL tail decays too softly and overshoots',
-    'Full range: ceiling law over TPL by **ΔAIC 200 to 345**',
-], size=14)
+title(s, 'Where the likelihood margin comes from')
+img_fit(s, 'fig24_ldw_residuals.png', 0.55, 1.25, 12.2, 4.1)
+block(s, 0.7, 5.45, 5.9, 1.9, 'Left: residuals per size bin, largest cell', [
+    'Measured density divided by each fitted density, with Poisson error bars. The Budrikis form runs 30% low at 3 × 10⁻⁴ and 30% high through '
+    '10⁻³ to 10⁻², the bend the exp(C√u) factor puts in; the TPL has the same wave, smaller',
+], size=13)
+block(s, 6.95, 5.45, 5.8, 1.9, 'Right: log-likelihood gain of the ceiling law, accumulated over events', [
+    'Both rivals win below 10⁻³ and lose it back, and more, between 10⁻³ and 10⁻¹, where most events sit. '
+    'Totals: **+62 over the TPL (ΔAIC +120), +106 over Budrikis (ΔAIC +208)**',
+], size=13)
 
 # -------------------------------------------------------------- 7 all cells + control
 s = slide()
@@ -344,6 +309,12 @@ block(s, 0.7, 5.05, 12.0, 1.5, 'Result', [
     '0.44 / 0.27 / 0.22 / 0.17 at γ = 0.1 / 0.2 / 0.3 / 0.5 (data 0.63 / 0.27 / 0.24 / 0.18). The memory relaxes with strain, γ_r ≈ 0.2',
 ], size=12.5)
 
+# order: the generated 'discovered law' slide goes right after the budget table (before the hand-edited one-cell slide)
+lst = prs.slides._sldIdLst
+ids = list(lst)
+n_base = 8                                   # hand-edited slides in deck_base.pptx
+law = ids[n_base]                            # first generated slide
+lst.remove(law); lst.insert(n_base - 1, law)
 out = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), '..', 'SEEM_project_deck.pptx')
 prs.save(out)
 print('saved', out, len(prs.slides), 'slides')

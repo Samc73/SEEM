@@ -176,6 +176,12 @@ figures/fig23_ldw.png). Adding the ε rounding and fitting the full range
 leaves it +80 to +106 behind the ceiling law; on the log-log axes of Figure 1
 that version is nearly indistinguishable from the ceiling law by eye, which
 is a reminder that the per-event likelihood, not the plot, is what decides.
+Where the margin comes from is visible in the residuals
+(figures/fig24_ldw_residuals.png, `pipeline/ldw_residuals.py`): per size bin,
+the Budrikis form runs 30% low near 3 × 10⁻⁴ and 30% high through 10⁻³ to
+10⁻², and the cumulative log-likelihood gain of the ceiling law is earned
+between 10⁻³ and 10⁻¹, where most of the events are (+106 over the Budrikis
+form and +62 over the TPL in the largest cell).
 
 ![The collapse](figures/fig02_collapse.png)
 

@@ -767,7 +767,7 @@ Next, in order of value:
 | [pipeline/run_all.sh](pipeline/run_all.sh) | **reproduces every number and figure in this document** from `df_clean.pkl` (43 min on 8 cores, verified from a clean slate: all 22 figures regenerate byte-identical); each step is one script in `pipeline/`, outputs land in the gitignored `pipeline/out/` |
 | [pipeline/extract2.py](pipeline/extract2.py) | event catalog and per-cell sufficient statistics on the 22×22 grid (Section 1) |
 | [pipeline/discover_dist.py](pipeline/discover_dist.py), [pipeline/sr_deep9.py](pipeline/sr_deep9.py) | the symbolic-regression fleet and the complexity-9 audit (Section 4) |
-| [pipeline/mle_compare.py](pipeline/mle_compare.py), [pipeline/synth_check.py](pipeline/synth_check.py) | likelihood adjudication and the falsifiability controls (Sections 4 to 5) |
+| [pipeline/mle_compare.py](pipeline/mle_compare.py), [pipeline/synth_check.py](pipeline/synth_check.py), [pipeline/ldw_compare.py](pipeline/ldw_compare.py) | likelihood adjudication, the falsifiability controls, and the Budrikis et al. (2017) form on the same cells (Sections 4 to 5) |
 | [pipeline/scale_field.py](pipeline/scale_field.py), [pipeline/refit_m.py](pipeline/refit_m.py) | the ceiling field, its factorization and bootstrap, the m/k decoupling (Section 6) |
 | [pipeline/fields.py](pipeline/fields.py), [pipeline/reconstruct.py](pipeline/reconstruct.py), [pipeline/recon4.py](pipeline/recon4.py) | measured fields; q rebuilt from the law; Λ/f factors (Section 7) |
 | [pipeline/simulate.py](pipeline/simulate.py), [pipeline/sim_run.py](pipeline/sim_run.py) | the forward simulator and its three arms (Section 8) |

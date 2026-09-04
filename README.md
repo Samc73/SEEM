@@ -509,8 +509,8 @@ rather than assumed.
 all cells (black) and three u bands (colour). Right: the slow-3/fast-3 ratios
 of Figure 16 split at γ = 0.3. The size memory falls from 1.75× to 1.16×; the
 hazard stays blind in both windows (0.97, 1.03). But the energy-step memory
-only halves (−0.67 → −0.27 × 10⁻⁶ per step at fixed cell, against a typical
-|⟨du⟩| of 0.55), and the per-event regression says why: at late strain a
+only halves (−0.67 → −0.27 × 10⁻⁶ per step at fixed cell, against a
+typical |⟨du⟩| of 0.55), and the per-event regression says why: at late strain a
 third of the energy-release difference is in the coupling at fixed size
 (−18 ± 3 of −47 × 10⁻⁶), not in the size. This is why the simulation with a
 relaxing ceiling memory (Figure 17, green: β(γ) taken from the left panel)

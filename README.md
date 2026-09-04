@@ -770,6 +770,7 @@ the ceiling; (4) reverse loading, unchanged from the first pass.
 | [library/dist.py](library/dist.py) | normalized-MLE machinery: candidate densities, AIC, trajectory-blocked CV, moments, sampling |
 | [library/stz.py](library/stz.py), [library/avalanche.py](library/avalanche.py) | first-pass field extraction and TPL fitting (kept for comparison) |
 | [REPORT.md](REPORT.md) | first-pass technical report (measured-field route + STZ scrutiny) |
+| [SEEM_project_deck.pptx](SEEM_project_deck.pptx) | 20-slide status deck for this pass (built by [pipeline/build_deck.py](pipeline/build_deck.py) from the figures) |
 | figures/fig01 … fig22 | this pass (one plot per figure; 16–22 are Section 9) |
 | figures/state_sufficiency.png … steady_state.png | first pass |
 

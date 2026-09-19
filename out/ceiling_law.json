@@ -1,0 +1,64 @@
+{
+ "n_events": 187064,
+ "shape": {
+  "k": 0.8791761673029205,
+  "m": 2.273268512209932,
+  "eps": 2.745204519781104e-05
+ },
+ "leak": 0.001,
+ "models": {
+  "constant": {
+   "n_parameters": 1,
+   "ll": 602479.1146448372,
+   "violations": 67,
+   "held_out_ll": 602478.1233003915,
+   "held_out_violations": 69,
+   "theta": [
+    -0.27927018481542476
+   ]
+  },
+  "per-cell table": {
+   "n_parameters": 353,
+   "ll": 610845.9138818792,
+   "violations": 28,
+   "held_out_ll": 609832.0701945764,
+   "held_out_violations": 104,
+   "theta": null
+  },
+  "product": {
+   "n_parameters": 2,
+   "ll": 609741.2613694759,
+   "violations": 69,
+   "held_out_ll": 609739.8614199922,
+   "held_out_violations": 72,
+   "theta": [
+    -2.7817286353762296,
+    0.914206003633224
+   ]
+  },
+  "product + cooling rate": {
+   "n_parameters": 3,
+   "ll": 610799.126907625,
+   "violations": 30,
+   "held_out_ll": 610794.5990231384,
+   "held_out_violations": 31,
+   "theta": [
+    -3.038372830842291,
+    0.9950672897951943,
+    -0.11040989136378403
+   ]
+  },
+  "product + tau_max": {
+   "n_parameters": 3,
+   "ll": 610918.0849673438,
+   "violations": 20,
+   "held_out_ll": 610913.3215333066,
+   "held_out_violations": 20,
+   "theta": [
+    -3.654498370226401,
+    0.8050396695644286,
+    0.6461413619088131
+   ]
+  }
+ }
+}

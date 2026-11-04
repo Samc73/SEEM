@@ -1,2 +1,4 @@
-df_clean.pkl
-df_clean.pkl
+*.pkl
+*.pkl.gz
+out/
+__pycache__/

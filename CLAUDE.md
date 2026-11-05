@@ -19,6 +19,8 @@ python 4_figures.py           # all of out/             -> figures/size_law.png,
 # copula analysis (branch copula-analysis); independent of steps 1-4
 python 5_extract_joint_events.py   # df_clean.pkl  -> out/joint_events.npz   (~10 GB RAM, ~15 s)
 python 6_fit_marginals.py          # joint events  -> out/marginals.json, out/marginal_table.npz
+python test_copulas.py             # synthetic checks of copulas.py; run before step 7 after any change
+python 7_fit_copulas.py            # marginals     -> out/copulas.json   (most-visited cell only)
 ```
 
 - Scripts 2–4 `import size_law` from this folder. `C:\Users\scohe\Downloads` holds another copy of `size_law.py` and scripts 1–4 with its own `out/` and `figures/`. That copy is separate: changes made here don't reach it.

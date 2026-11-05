@@ -105,6 +105,40 @@ for rank in range(len(copulas.FAMILIES)):
         cells.append('%-17s %7.1f [%7.1f, %7.1f]' % (f, r['held_out_ll'], *r['held_out_ci']))
     print('  %4d   %-40s   %-40s' % (rank + 1, cells[0], cells[1]))
 
+# --- does the second parameter help?  BB families against the one-parameter leaders
+TWO_PARAMETER = ('bb1', 'survival_bb1', 'bb7', 'survival_bb7')
+ONE_PARAMETER_LEADERS = ('gumbel', 'survival_clayton')
+SAME_MODEL = 1.0   # held-out CI entirely within +-1 nat: the two fits are the same model
+e = results['empirical']
+comparisons = {}
+for m, label in (('cml', 'RANKS (reference)'), ('ifm', 'TPL MARGINALS (IFM)')):
+    rows = results[m]['families']
+    print('\n%s: two-parameter fits against the data' % label)
+    print('  %-14s %-26s %6s %8s %8s %8s %8s  %s'
+          % ('family', 'params', 'tau', 'lam_L', 'lam_U', 'tailL.05', 'tailU.05', 'bound flags'))
+    print('  %-14s %-26s %6.3f %8s %8s %8.3f %8.3f'
+          % ('data', '', e['kendall_tau'], '', '', e['tail_lower_q'], e['tail_upper_q']))
+    for f in TWO_PARAMETER + ONE_PARAMETER_LEADERS:
+        r = rows[f]
+        flags = '; '.join(r['at_bound'] + r['fold_at_bound']) or '-'
+        print('  %-14s %-26s %6.3f %8.3f %8.3f %8.3f %8.3f  %s'
+              % (f, ', '.join('%s %.3f' % (nm, p) for nm, p in zip(r['param_names'], r['params'])),
+                 r['tau'], r['lambda_lower'], r['lambda_upper'], r['tail_lower_q'],
+                 r['tail_upper_q'], flags))
+    print('  held-out difference (two-parameter minus one-parameter), 95% CI by trajectory, P(> 0):')
+    comparisons[m] = {}
+    for f in TWO_PARAMETER:
+        for g in ONE_PARAMETER_LEADERS:
+            point, ci, p = copulas.paired_difference(results, m, f, g)
+            # a two-parameter family that collapses onto its one-parameter limit
+            # differs from it only by rounding; do not call that better or worse
+            verdict = ('same model (collapsed to its limit)' if max(abs(ci[0]), abs(ci[1])) < SAME_MODEL
+                       else 'better' if ci[0] > 0 else 'worse' if ci[1] < 0 else 'not distinguishable')
+            comparisons[m]['%s - %s' % (f, g)] = dict(difference=point, ci=ci, p_positive=p,
+                                                      verdict=verdict)
+            print('    %-14s - %-17s %+8.1f [%+7.1f, %+7.1f]  P %.3f  -> %s'
+                  % (f, g, point, *ci, p, verdict))
+
 note = ('rank-based (cml) results are the reference: the TPL marginals are only '
         'approximate in this cell and were fitted on all drops, not only paired ones')
 print('\nNOTE: ' + note)
@@ -115,6 +149,9 @@ with open('out/copulas.json', 'w') as handle:
     json.dump(dict(cell=c, cell_u=c // n_bins, cell_tau=c % n_bins,
                    xmin=dict(pe=XMIN_PE, stress=XMIN_STRESS),
                    n_pe_drops=int(pe_drop.sum()), n_stress_drops=int(stress_drop.sum()),
-                   n_paired=int(paired.sum()), pit=pit, notes=[note], results=results),
+                   n_paired=int(paired.sum()), pit=pit, notes=[note],
+                   results={m: ({k: v for k, v in r.items() if k != 'boot_scores'}
+                                if m in ('cml', 'ifm') else r) for m, r in results.items()},
+                   two_parameter_comparisons=comparisons),
               handle, indent=1)
 print('\nwrote out/copulas.json  (%.0fs)' % (time.time() - start_time))

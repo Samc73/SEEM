@@ -59,7 +59,8 @@ The joint distribution of stress drop `-dtau` and PE drop `-du`. It uses differe
 - **Cutoffs:** PE ≥ 1e-6 (below it is a numerical-noise bump near 3e-8 that holds nearly all "PE only" events). Stress ≥ 1e-3, which excludes most stress-only "aging" drops (PE rises during the drop). Step 6 also stores the stress fits at 1e-6 and 1e-4 as a sensitivity check.
 - **Separate subsets:** each marginal is fitted on all of its own drops, and the copula only on paired drops (both negative). The PIT of paired events under the marginals is therefore not exactly uniform, so rank-based (pseudo-observation) copula fits are the reference and IFM fits are secondary.
 - **Marginal:** truncated power law `s^-kappa exp(-s/s*)` on `s >= xmin`, in `marginals.py` (free `xmin`, unlike `size_law.py`'s fixed 1e-6). Per-cell fits need ≥ 40 drops, and maps show only cells with ≥ 100.
-- **Copula fits** are done in the most-visited cell, (18, 11) = cell 407.
+- **Copula fits** are done in the most-visited cell, (18, 11) = cell 407. Families: independence, gaussian, t, clayton, gumbel, frank, bb1 and bb7, plus 180° rotations (`survival_*`). BB1 contains Gumbel (θ → 0) and Clayton (δ = 1), and BB7 contains Clayton (θ = 1), so a BB fit with a bound flag on those parameters has collapsed to that one-parameter family. That is a finding, not an optimiser failure. Fits that fail outright are flagged `FIT FAILED`.
+- **Testing:** `test_copulas.py` checks family selection at n = 4000 and parameter accuracy (5%) at n = 40000. At n = 4000 a single estimate scatters by up to about 9%, so 5% can't be checked there.
 
 ## Other files
 

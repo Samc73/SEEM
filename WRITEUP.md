@@ -1,6 +1,6 @@
-# Joint statistics of PE drops and stress drops: copula analysis, steps 5–9
+# Joint statistics of PE drops and stress drops: copula analysis, steps 5–11b
 
-Branch `copula-analysis`, November 2026 (step 9 updated 18 November). Every number below comes from the pipeline's saved outputs (`out/*.json`; step 9's final result is `out/dependence_law.json`), the scripts' printed output, or `CLAUDE.md`.
+Branch `copula-analysis`, November 2026 (steps 9 and 11b updated 18 November). Every number below comes from the pipeline's saved outputs (`out/*.json`; step 9's final result is `out/dependence_law.json`, step 11b's is `out/copula_benchmark_rate.json`), the scripts' printed output, or `CLAUDE.md`. The one-page version is `SUMMARY.md`.
 
 **Notation.** I write the state as (u, τ) with u = pe − u₀ (u₀ = −4.60751861) and τ = stress/10⁴, as in SEEM. To avoid a clash, the rank correlation Kendall's tau is written **τ_K**.
 
@@ -9,8 +9,8 @@ Branch `copula-analysis`, November 2026 (step 9 updated 18 November). Every numb
 - **The two drops are strongly linked, mainly when both are large.** In the most-visited voxel, cell (18, 11), 3,906 events where both stress and PE drop have Kendall τ_K = 0.726. (τ_K is a rank correlation: 0 means no link, 1 means the two always order the same way.) Big PE drops almost always come with big stress drops, while small drops of the two kinds are only loosely tied.
 - **Several copula families fit equally well, and none fits exactly.** A copula is a model of how two quantities move together after each one's own size distribution has been factored out. Gumbel and "flipped" Clayton, both of which put the link in the large-drop corner, are statistically tied on held-out data, as are two two-parameter families (flipped BB1 and BB7). The extra parameter does not help. All of them overstate how often the very largest drops coincide, and they understate τ_K slightly.
 - **The strength of the link depends on state and on cooling rate.** Across the 119 voxels with at least 100 paired events, τ_K runs from 0.52 to 0.88. It is higher at higher stress and higher u, and lower for faster-cooled glasses at the same state.
-- **A five-parameter formula captures nearly all of that variation.** A Gumbel copula with η = log(θ − 1) linear in u and τ, their product, and the log cooling rate recovers 94–99% of the held-out improvement that one parameter per voxel (plus a rate term) achieves over a single constant. With half the data it ties the 120-parameter voxel table; trained on 80% of the trajectories, the table leads by about 1.2 log-likelihood units per 1,000 events, so some state structure remains that the formula misses.
-- **The Gumbel shape is the bigger limitation.** Everywhere in the state space the fitted copulas, formula and voxel table alike, overstate how often both drops are in their largest 5%, by about 0.065 after correcting for how this is measured. At the highest τ_K, Frank (a family with no tail link) beats Gumbel in all three voxels checked.
+- **A five-parameter formula captures nearly all of that variation.** A Gumbel copula with η = log(θ − 1) linear in u and τ, their product, and the log cooling rate recovers 92–99% of the held-out improvement that one parameter per voxel (plus a rate term) achieves over a single constant (about 20 log-likelihood units per 1,000 events). With half the data it ties the 120-parameter voxel table; trained on 80% of the trajectories, the table leads by about 1.2 log-likelihood units per 1,000 events, so some state structure remains that the formula misses.
+- **The copula's shape matters far more than its state dependence.** A kernel copula, which has no family shape, beats Gumbel by +74 per 1,000 events [+60, +88] in cell (18, 11), where Gumbel is the best named family; the misfit is mostly in the bulk of the square. At the highest τ_K, Frank (no tail link) matches the kernel in all three voxels checked; at the lowest, nothing is gained. Everywhere, the Gumbel fits, formula and voxel table alike, overstate how often both drops are in their largest 5%, by about 0.065 after correcting for how this is measured.
 - **The marginal fits are approximate.** A truncated power law describes each drop size only roughly. For stress, the stress-only "aging" events distort what the copula sees, so the results that depend on these fits are treated as secondary. Both size laws also shift with cooling rate inside a voxel, which the size-law fits do not model.
 
 ## 1. Question and approach
@@ -132,11 +132,11 @@ with u′, τ′ the standardised energy and stress. 95% intervals: intercept [0
 **Calibration and residuals** (in-sample, against the τ_K measured within each rate):
 - Voxels whose implied τ_K falls outside the measured interval: **37 of 119 for interaction + rate, against 28 for the voxel table + rate**.
 - Every model understates τ_K by 0.013 on average (a correct model measured the same way shows 0.000), and compresses its range: the bias falls with implied τ_K by 0.22 per unit for the formula and 0.16 for the table, against 0.02 for a correct model.
-- Where the formula misses (figure 6): both models are too weak in the dense high-u band at stress 1.0–1.5; the formula is also too strong at the low-u, high-stress edge and along the lowest-stress row. Those edges are the structure the table captures.
+- Where the formula misses (`dependence_tau_residuals.png`): both models are too weak in the dense high-u band at stress 1.0–1.5; the formula is also too strong at the low-u, high-stress edge and along the lowest-stress row. Those edges are the structure the table captures.
 
 **Upper tail.** The probability that the stress drop is in its largest 5% given that the PE drop is: the fitted copulas exceed the data by +0.103 on average, and lie above the data's interval in 21 (formula) and 23 (table) of 119 voxels. Small rank groups bias the measured value low, so a correct model would show +0.038 and land above the interval in 2 voxels. The remaining **+0.065 is a genuine overshoot, present everywhere**: it does not correlate with u, τ, rate mix or τ_K (|r| ≤ 0.17), and the formula and the table show it equally. It is the Gumbel shape, not the θ(u, τ, rate) law.
 
-**Family check (a hint, not a finding).** Rerunning the family comparison with clean ranks:
+**Family check.** Rerunning the family comparison with clean ranks:
 
 | Voxel (measured τ_K, events) | Best family | Gumbel minus best [95%, sampling only] |
 |---|---|---|
@@ -146,27 +146,60 @@ with u′, τ′ the standardised energy and stress. 95% intervals: intercept [0
 | (19, 14), 2nd highest (0.837, 488) | Frank | −59.9 [−92.9, −28.9] |
 | (20, 13), 3rd highest (0.830, 591) | Frank | −73.0 [−108.3, −40.6] |
 
-Frank, which has no tail link, beats Gumbel beyond noise in all three of the highest-τ_K voxels. This fits the upper-tail overshoot, but it rests on three voxels of 400–600 events each and on intervals that do not include refitting noise.
+Frank, which has no tail link, beats Gumbel beyond noise in all three of the highest-τ_K voxels. This fits the upper-tail overshoot. Section 5 shows that in these voxels Frank also matches a shape-free benchmark.
 
-## 5. Limitations and open questions
+## 5. How much the copula's shape costs (steps 11 and 11b)
 
-1. **The large-drop corner is overstated everywhere.** In cell (18, 11) all the leading families put the upper 5% corner at 0.78–0.84 against 0.69 [0.64, 0.74]; across the state space the overshoot is about +0.065 after the measurement correction, for the formula and the voxel table alike. More parameters in θ cannot fix it. In cell (18, 11) a kernel copula with no family shape beats Gumbel by 314 held-out log-likelihood (step 11), so the shape, not the parameter, is the limit. One possible cause, not tested, is the hard ceiling on drop sizes.
-2. **The best family may change with state.** Frank wins in the three highest-τ_K voxels checked. Gumbel was carried into step 9 from one voxel.
+**The benchmark.** A transformation kernel copula: a Gaussian kernel density of the normal scores of the ranks, with no family shape. Its bandwidth is chosen inside each training half by leave-one-group-out over blocks of trajectories, so the held-out half is never used to tune it. On synthetic data that truly are Gumbel it scores slightly *below* Gumbel (−58 [−93, −31], `test_copulas.py` section 5), so a clear kernel win means the family's shape is wrong. Scoring is as in section 3: even against odd trajectory ids, with intervals from resampling whole trajectories (sampling only).
+
+**Step 11 (pooled ranks) and step 11b (ranks within voxel × rate).** Step 11 ran the benchmark in cell (18, 11) with ranks pooled over cooling rates: kernel − Gumbel +314 [+259, +368]. Step 11b reruns it with step 9's ranks in the five voxels of the family check, against every family; its pooled-rank rerun reproduces +314.2 exactly. All values are per 1,000 events:
+
+| Voxel (τ_K, events) | Best named family | Kernel − Gumbel [95%] | Kernel − best [95%] |
+|---|---|---|---|
+| (13, 9), lowest (0.567, 302) | flipped Clayton | +12 [−36, +60] | +9 [−54, +65] |
+| (18, 11), median (0.726, 3,906) | Gumbel | +74 [+60, +88] | same |
+| (20, 13), 3rd highest (0.830, 591) | Frank | +77 [+25, +130] | −46 [−89, −8] |
+| (19, 14), 2nd highest (0.837, 488) | Frank | +112 [+57, +173] | −11 [−77, +48] |
+| (17, 15), highest (0.854, 413) | Frank | +82 [+30, +139] | +0.5 [−40, +43] |
+| (18, 11), pooled ranks (step 11) | Gumbel | +80 [+66, +94] | same |
+
+**Where the gain sits** (kernel − Gumbel per 1,000 events, by region of the held-out ranks; corners are both ranks above 0.9 or both below 0.1):
+
+| Voxel | Bulk | Upper corner | Lower corner |
+|---|---|---|---|
+| (18, 11), clean ranks | +69 | +10 | −5 |
+| (18, 11), pooled ranks | +69 | +16 | −5 |
+| (19, 14) | +92 | +22 | −2 |
+| (20, 13) | +18 | +57 | +2 |
+| (17, 15) | +64 | +11 | +7 |
+
+- **Pooling ranks over rates inflated the corner, not the bulk.** In cell (18, 11) the clean ranks lower kernel − Gumbel from +314 to +290 in total. Almost all of the 25-unit drop is in the upper corner (+63 → +40; lower corner −19 → −21); the bulk is unchanged (+270). Pooling had added fake large-drop-corner dependence, as section 4 predicts.
+- **In the busiest voxel, no named family comes close, and the misfit is in the bulk.** Gumbel is the best family there, and the kernel still gains +74 per 1,000 events. That is about 60 times the 1.2 per 1,000 by which the voxel table beats the five-parameter formula (section 4), and more than the ~20 per 1,000 that the whole state dependence of θ is worth. The gain is spread over the square, largest along the low-rank edges, where one drop is small and the other is not (`kernel_benchmark.png` a).
+- **At high τ_K the family choice is the whole story.** Gumbel trails the kernel clearly in all three voxels, while Frank ties or beats it. In (20, 13), Frank even beats the kernel (−46 [−89, −8]), which can happen at n ≈ 600, where the kernel pays for having no shape.
+- **At low τ_K there is nothing to gain:** the kernel, Gumbel and flipped Clayton are tied.
+
+**Caveats.** The Frank result rests on three voxels of 400–600 events each. The "best" family is chosen on the same held-out data it is scored on, which flatters it slightly. All intervals are sampling-only, a kind that a synthetic coverage study found about 1.4× too narrow for near-ties (section 6). In (17, 15) one fold's bandwidth sits at the edge of its grid (0.6), so the kernel may be slightly handicapped there. In three of the small voxels, up to 46 events per fold fall back to coarser rank groups.
+
+**What it means for the family question.** Gumbel was carried into step 9 from one voxel; the family should instead change with state. At high τ_K a named family (Frank) is enough. In the mid-τ_K voxel that holds most of the data, neither Gumbel nor any other named family is, so a Gumbel–Frank switch alone will not close that gap. A more flexible copula (a mixture, or a nonparametric one) would be needed there.
+
+## 6. Limitations and open questions
+
+1. **The copula's shape is the main limitation.** In cell (18, 11) all the leading families put the upper 5% corner at 0.78–0.84 against 0.69 [0.64, 0.74]; across the state space the overshoot is about +0.065 after the measurement correction, for the formula and the voxel table alike. More parameters in θ cannot fix it. A kernel copula beats the best named family by +74 per 1,000 events in that cell, mostly in the bulk (section 5). One possible cause, not tested, is the hard ceiling on drop sizes.
+2. **The best family changes with state.** Frank matches the kernel in the three highest-τ_K voxels; Gumbel is best in the middle and tied at the lowest τ_K. A per-voxel comparison over all well-filled voxels is untested.
 3. **The size laws depend on cooling rate inside a voxel**, which the size-law fits (steps 6–8) don't model, and steps 7–8 rank within the voxel, pooled over rates. Step 9 ranks within voxel × rate; the remaining fallbacks (about 2% of events) mix rates again, slightly.
 4. **The stress marginal does not describe the paired events** (PIT KS 0.21), because aging events remain in its fit. That's why IFM understates τ_K, and why nothing that relies on the fitted marginals should be used yet.
 5. **Neighboring voxels share trajectories.** Each voxel's interval resamples trajectories within that voxel, but comparisons across voxels (the τ_K trends, the counts of voxels outside an interval) treat voxels as independent. Their p-values are overstated.
 6. **The error bars.** Step 7 and 8 intervals, and step 9's fold scores, resample trajectories without refitting; a synthetic coverage study found them about 1.4× too narrow for near-ties. The repeated splits include refitting but overlap, so their spread shows stability, not a formal confidence interval. The refitting bootstrap handicaps the voxel tables and biases coefficients (duplicated trajectories create tied ranks), so it is kept only as a secondary record; coefficient intervals come from the random splits instead.
 7. **The link to step 3's ceiling law is a hypothesis.** The product form uses the same variable, 100uτ, as step 3's ceiling law. It is not the best form (product + rate trails the table by 1.2 per 1,000 events at 50/50 and wins 2 of 50 splits), and its zero crossing depends on the reference energy u₀.
 
-## 6. Possible next steps
+## 7. Next steps, in priority order
 
-- **Per-voxel family comparison.** Run the family comparison in every well-filled voxel with clean ranks. The Frank result at high τ_K suggests the family, not only θ, varies with state.
-- **A copula with a lighter upper tail.** The overshoot is uniform, so a family (or a mixture such as Gumbel–Frank) with a weaker upper corner could be tested across all voxels at once, with θ(u, τ, rate) as here.
-- **Rate-aware size laws.** Fit the marginals per voxel × rate (or with a rate term), and fix the stress marginal (paired events only, or step 2's ceiling law). Both are prerequisites for IFM and for sampling.
-- **Sample paired events inside SEEM.** Replace the empirical (Δu, Δτ) lists with draws from the size laws plus a copula. That needs the marginal fixes first, plus a decision on the aging and PE-only events, which a paired-event copula doesn't describe.
-- **Test the ceiling link.** Run steps 1–3 in this folder and fit η = a + b·ln s_c(u, τ).
+1. **The copula's shape.** A family that changes with state (Gumbel → Frank as τ_K rises; compare families in every well-filled voxel with clean ranks), plus a more flexible option (a mixture or a nonparametric copula) for the mid-τ_K bulk misfit. Section 5 shows this is the largest available gain, well above what more θ structure could add.
+2. **Run steps 1–3 in this folder.** They are a prerequisite for rate-dependent size laws (step 2's ceiling-law fits) and for any link to the ceiling s_c (η = a + b·ln s_c(u, τ)). `df_clean.pkl` is here and matches the other copy; step 1 needs about 10 GB of RAM; the scripts differ from the `Downloads` copy only in ways that don't change results.
+3. **Rate-dependent size laws.** Fit the marginals per voxel × rate (or with a rate term), and fix the stress marginal (paired events only, or step 2's ceiling law). Both are prerequisites for IFM and for sampling.
+4. **Sample paired events inside SEEM.** Replace the empirical (Δu, Δτ) lists with draws from the size laws plus a copula. That needs 1–3 first, plus a decision on the aging and PE-only events, which a paired-event copula doesn't describe.
 
-## 7. Figures for the meeting
+## 8. Figures for the meeting
 
 All figures are at the top level of `figures/`; each panel of the multi-panel figures is also saved on its own in `figures/panels/` for slides.
 
@@ -175,31 +208,35 @@ All figures are at the top level of `figures/`; each panel of the multi-panel fi
 | Rank | File | Takeaway |
 |---|---|---|
 | 1 | `voxel_dependence.png` | The link varies strongly with state. |
-| 2 | `copula_shapes.png` | Large drops of both kinds go together tightly; small ones only loosely. |
-| 3 | `dependence_scoreboard.png` | A five-parameter formula captures nearly all of the variation; one θ per voxel still leads with enough data. |
-| 4 | `dependence_tail_residuals.png` | The Gumbel tail is too heavy everywhere, for formula and table alike. |
-| 5 | `dependence_tau_residuals.png` | Where the formula misses: the edges of the occupied region. |
-| 6 | `tail_comparison.png` | In the busiest voxel, every family overstates how often the largest drops coincide. |
-| 7 | `copula_scores.png` | Families with the link in the large-drop corner are tied for best. |
+| 2 | `dependence_scoreboard.png` | A five-parameter formula captures nearly all of the variation; one θ per voxel still leads with enough data. |
+| 3 | `dependence_tau_residuals.png` | Where the formula misses: the edges of the occupied region. |
+| 4 | `kernel_benchmark.png` (panel d) | The copula's shape costs far more than the formula's shortfall; at high τ_K, Frank fixes it. |
+| 5 | `dependence_tail_residuals.png` | The Gumbel tail is too heavy everywhere, for formula and table alike. |
+| 6 | `copula_shapes.png` | Large drops of both kinds go together tightly; small ones only loosely. |
+| 7 | `tail_comparison.png` | In the busiest voxel, every family overstates how often the largest drops coincide. |
+| 8 | `copula_scores.png` | Families with the link in the large-drop corner are tied for best. |
 
 **Backup:** `marginal_fits.png` and `pit_histograms.png` (the stress-marginal problem), `marginal_maps.png` (the size-law parameters). Leave out `figures/exploratory/*` (notebook-era plots on a different grid).
 
 **Captions.**
 1. **`voxel_dependence.png`.** Strength of the link between PE drop and stress drop (Kendall's τ_K) in the 119 voxels with at least 100 paired events, measured within each cooling rate and averaged (a), and the half-width of its 95% interval from resampling trajectories (b). τ_K runs from 0.52 to 0.88 and rises with both potential energy and stress; grey voxels have too few events, and the orange box is the most-visited voxel (18, 11).
 2. **`copula_shapes.png`.** Joint shape of the two drops in voxel (18, 11) (3,906 paired events), on the normal scores of their ranks: data (blue) against fitted copulas (orange contours, the same density levels in every panel). The families with the link in the large-drop corner reproduce the narrow upper-right ridge; the Gaussian cannot.
-3. **`dependence_scoreboard.png`.** (a) Held-out log-likelihood gain over a single Gumbel θ per 1,000 held-out events, mean ± sd over 50 random 50/50 and 50 random 80/20 splits of the trajectories (stratified by cooling rate); percentages are the share of the voxel table + rate's gain. (b) Each formula minus its voxel table: every split (dots), mean ± sd, and the 5-fold score with its sampling-only 95% interval. The five-parameter interaction + rate form recovers 94–99% of the table's gain and ties it with half the data, but trails by about 1.2 per 1,000 events when trained on 80%.
+3. **`dependence_scoreboard.png`.** (a) Held-out log-likelihood gain over a single Gumbel θ per 1,000 held-out events, mean ± sd over 50 random 50/50 and 50 random 80/20 splits of the trajectories (stratified by cooling rate); percentages are the share of the voxel table + rate's gain. (b) Each formula minus its voxel table: every split (dots), mean ± sd, and the 5-fold score with its sampling-only 95% interval. The five-parameter interaction + rate form recovers 92–99% of the table's gain and ties it with half the data, but trails by about 1.2 per 1,000 events when trained on 80%.
 4. **`dependence_tail_residuals.png`.** Model minus empirical probability that the stress drop is in its largest 5% given that the PE drop is, per voxel, for interaction + rate (a) and the voxel table + rate (b). Both overshoot by +0.10 on average (21 and 23 of 119 voxels above the interval, outlined), against +0.04 (2 voxels) for a correct model measured the same way; the overshoot shows no trend with state, so it comes from the Gumbel shape, not from the θ law.
 5. **`dependence_tau_residuals.png`.** Model-implied minus measured τ_K per voxel for interaction + rate (a) and the voxel table + rate (b), with τ_K measured within each cooling rate. Outlined voxels lie outside the measured 95% interval (37 and 28 of 119). Both understate τ_K in the dense high-u band; the formula also overstates it at the low-u, high-stress edge and along the lowest-stress row.
 6. **`tail_comparison.png`.** Kendall's τ_K and the probabilities that both drops are in their smallest or largest 5%, in voxel (18, 11): data with 95% interval against four rank-fitted families (independence gives 0.05 in each corner). Every family understates τ_K slightly and overstates how often the largest drops coincide (0.78–0.84 against 0.69).
-7. **`copula_scores.png`.** Held-out log-likelihood gain over independence for every copula family in voxel (18, 11), fitted on ranks (reference) and on the fitted size laws (secondary), with 95% intervals from resampling trajectories (a), and each family's difference from the best (b). Gumbel, flipped Clayton, BB7 and flipped BB1 are tied; the second parameter of BB1 and BB7 does not help.
-8. **`marginal_maps.png`** (backup). Truncated-power-law exponent κ and cutoff s* fitted to the PE drops (a, b) and stress drops (c, d) in each voxel with at least 100 drops; grey voxels have fewer. Both parameters vary smoothly across the state space.
-9. **`marginal_fits.png`** (backup). Drop-size distributions in voxel (18, 11): all drops (grey, fitted) and paired drops only (orange), with the truncated-power-law fit. The fit describes the paired PE drops, but paired stress drops are scarce below about 10⁻², where stress-only (aging) drops dominate.
-10. **`pit_histograms.png`** (backup). Fitted-CDF values of the 3,906 paired events under the voxel's size laws; a correct size law gives a flat histogram. PE is close (KS 0.039); stress is far from flat (KS 0.213), so results that rely on the fitted stress law are secondary.
+7. **`kernel_benchmark.png`** (step 11b). Where a shape-free kernel copula beats the named families, on held-out data with ranks within voxel × cooling rate. (a–c) Kernel minus model held-out log-likelihood, summed in each cell of a 10 × 10 grid on the held-out ranks, per 1,000 events of the voxel (cells add up to the panel's total; outlined squares are the corners used in the region split): (a) kernel − Gumbel in voxel (18, 11), +74, mostly spread over the bulk; (b) kernel − Gumbel in high-τ_K voxel (19, 14), +112; (c) kernel − Frank in the same voxel, −11, a tie. Single cells hold few events in (b, c) and carry no intervals. (d) Kernel − Gumbel (circles) and kernel − best named family (squares) per voxel, ordered by measured τ_K, with sampling-only 95% intervals; the open diamond is step 11's pooled-rank value in (18, 11) (+80), and the dashed line, for scale, is how far the voxel table beats the five-parameter formula over all voxels (1.2, 80/20 splits).
+8. **`copula_scores.png`.** Held-out log-likelihood gain over independence for every copula family in voxel (18, 11), fitted on ranks (reference) and on the fitted size laws (secondary), with 95% intervals from resampling trajectories (a), and each family's difference from the best (b). Gumbel, flipped Clayton, BB7 and flipped BB1 are tied; the second parameter of BB1 and BB7 does not help.
+9. **`marginal_maps.png`** (backup). Truncated-power-law exponent κ and cutoff s* fitted to the PE drops (a, b) and stress drops (c, d) in each voxel with at least 100 drops; grey voxels have fewer. Both parameters vary smoothly across the state space.
+10. **`marginal_fits.png`** (backup). Drop-size distributions in voxel (18, 11): all drops (grey, fitted) and paired drops only (orange), with the truncated-power-law fit. The fit describes the paired PE drops, but paired stress drops are scarce below about 10⁻², where stress-only (aging) drops dominate.
+11. **`pit_histograms.png`** (backup). Fitted-CDF values of the 3,906 paired events under the voxel's size laws; a correct size law gives a flat histogram. PE is close (KS 0.039); stress is far from flat (KS 0.213), so results that rely on the fitted stress law are secondary.
 
-## 8. Claims I would avoid
+## 9. Claims I would avoid
 
 - **"Gumbel is the copula for these events."** It's tied with three other families in one voxel, Frank beats it at the highest τ_K, and its upper tail is too heavy everywhere.
-- **"A formula describes the state dependence."** It recovers 94–99% of the table's gain and ties it with half the data, but with 80% of the data the table wins 47 of 50 splits, and the residual maps show where.
+- **"At high τ_K the copula is Frank."** Frank matches a shape-free benchmark in three voxels of 400–600 events, with the family chosen on the same held-out data and sampling-only intervals. Say "supported in the three voxels checked".
+- **"The kernel copula is the better model."** It is a benchmark for how much any copula could gain, not a model to sample from: it has no parameters to tie to state, and in small voxels a named family can beat it.
+- **"A formula describes the state dependence."** It recovers 92–99% of the table's gain and ties it with half the data, but with 80% of the data the table wins 47 of 50 splits, and the residual maps show where.
 - **"Faster cooling weakens the link by g = −0.05."** The fitted coefficient is 70–80% of what the direct τ_K measurements imply; quote the direction and the measured −0.0158 per unit ln rate (group regression, at fixed state), about −0.09 in τ_K over the rate range.
 - **"θ follows the ceiling law" or "the dependence is set by 100uτ."** That's untested, and the product form is not the best formula.
 - **"The drop sizes follow a truncated power law."** It's approximate, rejected in the busiest voxel, and ignores the shift with cooling rate.

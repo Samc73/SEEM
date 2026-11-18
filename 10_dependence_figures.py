@@ -135,49 +135,64 @@ ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.14), ncol=2)
 letter(ax, 'a', x=-0.3)
 
 # (b) each formula minus its like-for-like table
-ax = axes[1]
-rows = [f + s for f in ('product', 'linear', 'interaction', 'quadratic') for s in ('', '+rate')]
-rng = np.random.default_rng(0)
-for i, form in enumerate(rows):
-    table = 'voxel_table+rate' if form.endswith('+rate') else 'voxel_table'
-    key = '%s - %s' % (form, table)
-    wins = []
-    for scheme, marker, colour, offset in (('halving', 'o', SERIES[0], -0.24), ('split80', 's', SERIES[1], 0.0)):
-        e = rep['%s/voxel_rate' % scheme]['comparisons'][key]
-        vals = np.array(e['per_1000'])
-        ax.scatter(vals, i + offset + rng.uniform(-0.06, 0.06, len(vals)), s=12, color=colour, alpha=0.45,
-                   linewidths=0)
-        ax.errorbar(vals.mean(), i + offset, xerr=vals.std(ddof=1), fmt=marker, color=INK, markerfacecolor=colour,
-                    markersize=9, capsize=3, elinewidth=1.5)
-        wins.append(e['wins'])
-    c = five[form]['vs_voxel_table_rate' if form.endswith('+rate') else 'vs_voxel_table']
-    point, lo, hi = 1000 * np.array([c['difference'], *c['ci']]) / n_events
-    ax.errorbar(point, i + 0.24, xerr=[[point - lo], [hi - point]], fmt='D', color=INK, markerfacecolor=SERIES[2],
-                markersize=8, capsize=3, elinewidth=1.5)
-    ax.text(1.01, i, 'won %d (50/50)\nwon %d (80/20)' % tuple(wins), transform=ax.get_yaxis_transform(),
-            va='center', fontsize=10, color=INK_2)
-ax.axvline(0, color=INK_2, linewidth=1)
-ax.set_yticks(range(len(rows)))
 N_PARAMS = dict(product=2, linear=3, interaction=4, quadratic=6)
-ax.set_yticklabels(['%s (%d)' % (f.replace('+rate', ' + rate'), N_PARAMS[f.split('+')[0]] + ('+' in f)) for f in rows])
-ax.set_ylim(len(rows) - 0.5, -0.6)
-ax.grid(True, axis='x')
-ax.text(0.02, -0.5, 'formula better →', fontsize=10, color=INK_2)
-ax.text(-0.02, -0.5, '← table better', fontsize=10, color=INK_2, ha='right')
+
+
+def formula_vs_table(ax, rows, legend=dict(loc='lower left')):
+    """Each formula in rows minus its voxel table: every split, mean ± sd, and the 5-fold interval."""
+    rng = np.random.default_rng(0)
+    for i, form in enumerate(rows):
+        table = 'voxel_table+rate' if form.endswith('+rate') else 'voxel_table'
+        key = '%s - %s' % (form, table)
+        wins = []
+        for scheme, marker, colour, offset in (('halving', 'o', SERIES[0], -0.24), ('split80', 's', SERIES[1], 0.0)):
+            e = rep['%s/voxel_rate' % scheme]['comparisons'][key]
+            vals = np.array(e['per_1000'])
+            ax.scatter(vals, i + offset + rng.uniform(-0.06, 0.06, len(vals)), s=12, color=colour, alpha=0.45,
+                       linewidths=0)
+            ax.errorbar(vals.mean(), i + offset, xerr=vals.std(ddof=1), fmt=marker, color=INK,
+                        markerfacecolor=colour, markersize=9, capsize=3, elinewidth=1.5)
+            wins.append(e['wins'])
+        c = five[form]['vs_voxel_table_rate' if form.endswith('+rate') else 'vs_voxel_table']
+        point, lo, hi = 1000 * np.array([c['difference'], *c['ci']]) / n_events
+        ax.errorbar(point, i + 0.24, xerr=[[point - lo], [hi - point]], fmt='D', color=INK,
+                    markerfacecolor=SERIES[2], markersize=8, capsize=3, elinewidth=1.5)
+        ax.text(1.01, i, 'won %d (50/50)\nwon %d (80/20)' % tuple(wins), transform=ax.get_yaxis_transform(),
+                va='center', fontsize=10, color=INK_2)
+    ax.axvline(0, color=INK_2, linewidth=1)
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels(['%s (%d)' % (f.replace('+rate', ' + rate'), N_PARAMS[f.split('+')[0]] + ('+' in f))
+                        for f in rows])
+    ax.set_ylim(len(rows) - 0.5, -0.6)
+    ax.grid(True, axis='x')
+    ax.text(0.02, -0.5, 'formula better →', fontsize=10, color=INK_2)
+    ax.text(-0.02, -0.5, '← table better', fontsize=10, color=INK_2, ha='right')
+    ax.legend(handles=[
+        Line2D([], [], marker='o', color=INK, markerfacecolor=SERIES[0], linestyle='', markersize=9,
+               label='50/50 splits: each (dots), mean ± sd'),
+        Line2D([], [], marker='s', color=INK, markerfacecolor=SERIES[1], linestyle='', markersize=9,
+               label='80/20 splits: each (dots), mean ± sd'),
+        Line2D([], [], marker='D', color=INK, markerfacecolor=SERIES[2], linestyle='', markersize=8,
+               label='5 folds, 95% sampling interval')], **legend)
+
+
+ax = axes[1]
+formula_vs_table(ax, [f + s for f in ('product', 'linear', 'interaction', 'quadratic') for s in ('', '+rate')])
 ax.set_xlabel('held-out ln L per 1,000 held-out events: formula minus its voxel table '
               '(rate-free forms vs voxel table; + rate forms vs voxel table + rate)')
 ax.set_title('Against one θ per voxel: a tie with half the data, a clear table lead with 80%')
-ax.legend(handles=[
-    Line2D([], [], marker='o', color=INK, markerfacecolor=SERIES[0], linestyle='', markersize=9,
-           label='50/50 splits: each (dots), mean ± sd'),
-    Line2D([], [], marker='s', color=INK, markerfacecolor=SERIES[1], linestyle='', markersize=9,
-           label='80/20 splits: each (dots), mean ± sd'),
-    Line2D([], [], marker='D', color=INK, markerfacecolor=SERIES[2], linestyle='', markersize=8,
-           label='5 folds, 95% sampling interval')], loc='lower left')
 letter(ax, 'b', x=-0.3)
 fig.suptitle('Held-out comparison of the θ(u, τ, rate) formulas, %d paired events in 119 voxels; whole '
              'trajectories held out, stratified by rate\n%s' % (n_events, DEFINITION), fontsize=12)
 save(fig, 'dependence_scoreboard', dict(a=[axes[0]], b=[axes[1]]))
+
+# slide version of (b): the three + rate formulas only
+fig, ax = plt.subplots(figsize=(11, 5.0), constrained_layout=True)
+formula_vs_table(ax, ['product+rate', 'interaction+rate', 'quadratic+rate'],
+                 legend=dict(loc='upper center', bbox_to_anchor=(0.5, -0.17), ncol=3))
+ax.set_xlabel('held-out ln L per 1,000 held-out events: formula minus one θ per voxel (+ rate)')
+ax.set_title('Formula vs one θ per voxel: a tie with half the data, the table ahead with 80%')
+save(fig, 'panels/dependence_scoreboard_b_slide')
 
 
 # --- 3 and 4. residual maps -------------------------------------------------------------------------

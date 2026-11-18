@@ -365,6 +365,16 @@ def choose_kernel_bandwidth(u, v, groups, bandwidths=KERNEL_BANDWIDTHS):
     return float(bandwidths[best]), scores, flags
 
 
+def square_regions(u, v, q=0.2):
+    """Four disjoint regions of the unit square that cover it: both ranks above
+    1 - q, both below q, the low-rank edges (either below q, not both), and the
+    middle (everything else)."""
+    upper = (u > 1 - q) & (v > 1 - q)
+    lower = (u < q) & (v < q)
+    edges = ((u < q) | (v < q)) & ~lower
+    return dict(upper_tail=upper, lower_tail=lower, low_rank_edges=edges, middle=~(upper | lower | edges))
+
+
 # --- the contest -------------------------------------------------------------------
 def run_contest(x, y, traj, ifm_pit, families=FAMILIES, n_boot=2000, q_tail=0.05, seed=0):
     """Fit and score every family, by ranks ('cml') and by marginals ('ifm').

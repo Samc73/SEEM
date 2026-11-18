@@ -30,6 +30,7 @@ N_BOOT = 2000
 SEED = 0
 INNER_GROUPS = 5            # as step 11
 CORNER = 0.9                # as step 11
+Q_REGION = 0.2              # four-region split (copulas.square_regions)
 OUT = 'out/copula_benchmark_rate.json'
 EVENTS_OUT = 'out/copula_benchmark_rate_events.npz'   # per event: held-out uniforms and ln c per model (for the figure)
 
@@ -50,8 +51,9 @@ RUNS = [(k, picked[k]['cell'], 'voxel_rate') for k in
 RUNS.append(('cell_18_11_pooled', picked['cell_18_11']['cell'], 'voxel'))
 
 
-def benchmark(c, ranks):
-    m = paired & (cell_all == c)
+def benchmark(c, ranks, events_mask=None):
+    """events_mask: which events count as paired (default: step 6's cutoffs)."""
+    m = (paired if events_mask is None else events_mask) & (cell_all == c)
     x, y, traj, ri = -du[m], -dtau[m], traj_all[m], rate_index_all[m]
     n = len(x)
     levels = [ri, ri // 3, np.zeros(n, int)] if ranks == 'voxel_rate' else [np.zeros(n, int)]
@@ -89,40 +91,55 @@ def benchmark(c, ranks):
         r = dl.compare(masked, dl.bootstrap_scores(masked, traj, N_BOOT, np.random.default_rng(SEED)),
                        'kernel', 'gumbel')
         regions[name] = dict(per1000(r), n_events=int(mask.sum()))
+    # four regions with q = 0.2 (copulas.square_regions): kernel - gumbel and kernel - best
+    regions4 = {}
+    for model in dict.fromkeys(('gumbel', best)):
+        regions4[model] = {}
+        for name, mask in copulas.square_regions(u_te_all, v_te_all, Q_REGION).items():
+            masked = {f: held[f] * mask for f in ('kernel', model)}
+            r = dl.compare(masked, dl.bootstrap_scores(masked, traj, N_BOOT, np.random.default_rng(SEED)),
+                           'kernel', model)
+            regions4[model][name] = dict(per1000(r), n_events=int(mask.sum()))
     return dict(cell=int(c), cell_uv=[int(c // n_bins), int(c % n_bins)], n=n, ranks=ranks,
                 n_trajectories=int(len(np.unique(traj))), held_out_totals=totals, best_parametric=best,
                 kernel_minus_gumbel=per1000(dl.compare(held, boot, 'kernel', 'gumbel')),
                 kernel_minus_best=per1000(dl.compare(held, boot, 'kernel', best)),
-                by_region=regions, folds=folds,
+                by_region=regions, by_region_q20=regions4, folds=folds,
                 _events=dict(u=u_te_all, v=v_te_all, **{'ll_' + f: held[f] for f in held}))
 
 
-results, per_event = {}, {}
-for label, c, ranks in RUNS:
-    r = benchmark(c, ranks)
-    per_event.update({'%s/%s' % (label, k): v for k, v in r.pop('_events').items()})
-    results[label] = r
-    kg, kb = r['kernel_minus_gumbel'], r['kernel_minus_best']
-    print('%-19s (%2d, %2d) n %4d %-10s  kernel-gumbel %+7.1f [%+6.1f, %+6.1f] = %+6.1f/1000   '
-          'best %-16s kernel-best %+7.1f [%+6.1f, %+6.1f] = %+6.1f/1000   h %s  (%.0f s)'
-          % (label, *r['cell_uv'], r['n'], ranks, kg['difference'], *kg['ci'], kg['per_1000_events'],
-             r['best_parametric'], kb['difference'], *kb['ci'], kb['per_1000_events'],
-             '/'.join('%.3f' % f['bandwidth'] for f in r['folds']), time.time() - t0))
-    for name, g in r['by_region'].items():
-        print('      %-13s %5d events  kernel-gumbel %+7.1f [%+6.1f, %+6.1f]'
-              % (name, g['n_events'], g['difference'], *g['ci']))
+if __name__ == '__main__':
+    results, per_event = {}, {}
+    for label, c, ranks in RUNS:
+        r = benchmark(c, ranks)
+        per_event.update({'%s/%s' % (label, k): v for k, v in r.pop('_events').items()})
+        results[label] = r
+        kg, kb = r['kernel_minus_gumbel'], r['kernel_minus_best']
+        print('%-19s (%2d, %2d) n %4d %-10s  kernel-gumbel %+7.1f [%+6.1f, %+6.1f] = %+6.1f/1000   '
+              'best %-16s kernel-best %+7.1f [%+6.1f, %+6.1f] = %+6.1f/1000   h %s  (%.0f s)'
+              % (label, *r['cell_uv'], r['n'], ranks, kg['difference'], *kg['ci'], kg['per_1000_events'],
+                 r['best_parametric'], kb['difference'], *kb['ci'], kb['per_1000_events'],
+                 '/'.join('%.3f' % f['bandwidth'] for f in r['folds']), time.time() - t0))
+        for name, g in r['by_region'].items():
+            print('      %-13s %5d events  kernel-gumbel %+7.1f [%+6.1f, %+6.1f]'
+                  % (name, g['n_events'], g['difference'], *g['ci']))
+        for model, regions in r['by_region_q20'].items():
+            print('      q = 0.2, kernel - %s per 1,000: %s' % (model, '   '.join(
+                '%s %+.1f [%+.1f, %+.1f]' % (k, g['per_1000_events'], *g['ci_per_1000']) for k, g in regions.items())))
+            total = sum(g['difference'] for g in regions.values())
+            assert abs(total - (r['held_out_totals']['kernel'] - r['held_out_totals'][model])) < 1e-6
 
-# reproduction check: pooled ranks in cell (18, 11) must give step 11's number
-with open('out/copula_benchmark.json') as handle:
-    step11 = json.load(handle)['comparisons']['kernel - gumbel']['difference']
-repro = results['cell_18_11_pooled']['kernel_minus_gumbel']['difference']
-print('\nreproduction: pooled ranks %.2f vs step 11 %.2f' % (repro, step11))
-assert abs(repro - step11) < 0.5, 'pooled-rank run does not reproduce step 11'
+    # reproduction check: pooled ranks in cell (18, 11) must give step 11's number
+    with open('out/copula_benchmark.json') as handle:
+        step11 = json.load(handle)['comparisons']['kernel - gumbel']['difference']
+    repro = results['cell_18_11_pooled']['kernel_minus_gumbel']['difference']
+    print('\nreproduction: pooled ranks %.2f vs step 11 %.2f' % (repro, step11))
+    assert abs(repro - step11) < 0.5, 'pooled-rank run does not reproduce step 11'
 
-with open(OUT, 'w') as handle:
-    json.dump(dict(step='11b', n_boot=N_BOOT, seed=SEED, corner_threshold=CORNER, min_rank_train=dl.MIN_RANK_TRAIN,
-                   rank_rule=dl.RANK_RULE, results=results,
-                   note='kernel = transformation kernel copula; best parametric chosen on the held-out data; '
-                        'intervals are sampling-only paired trajectory bootstraps'), handle, indent=1)
-np.savez_compressed(EVENTS_OUT, **per_event)
-print('wrote %s and %s  (%.0f s)' % (OUT, EVENTS_OUT, time.time() - t0))
+    with open(OUT, 'w') as handle:
+        json.dump(dict(step='11b', n_boot=N_BOOT, seed=SEED, corner_threshold=CORNER, min_rank_train=dl.MIN_RANK_TRAIN,
+                       rank_rule=dl.RANK_RULE, results=results,
+                       note='kernel = transformation kernel copula; best parametric chosen on the held-out data; '
+                            'intervals are sampling-only paired trajectory bootstraps'), handle, indent=1)
+    np.savez_compressed(EVENTS_OUT, **per_event)
+    print('wrote %s and %s  (%.0f s)' % (OUT, EVENTS_OUT, time.time() - t0))

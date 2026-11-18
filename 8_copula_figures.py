@@ -5,7 +5,7 @@ Input : out/joint_events.npz, out/marginals.json, out/marginal_table.npz,
 Output: figures/marginal_maps.png      truncated-power-law kappa and s* per voxel, PE and stress
         figures/marginal_fits.png      the fits in the most-visited voxel
         figures/pit_histograms.png     PIT of paired events under those fits
-        figures/copula_shapes.png      data vs model copula densities (normal scores)
+        (figures/copula_shapes.png is drawn by 11c_benchmark_figure.py, with voxel x rate ranks)
         figures/copula_scores.png      held-out gains and differences, ranks and IFM
         figures/tail_comparison.png    Kendall's tau and 5% corners: data vs four families
         figures/panels/<name>_<letter>.png   each panel of the multi-panel figures, for slides
@@ -28,7 +28,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm, Normalize, ListedColormap
 from matplotlib.patches import Patch, Rectangle
 from scipy import stats
-from scipy.special import ndtr, ndtri
 import copulas
 import marginals
 from figstyle import (BLUE_RAMP, FEW_EVENTS, GRID, INK, INK_2, KTAU, SERIES, SURFACE, T_LABEL, U_LABEL,
@@ -171,39 +170,7 @@ fig.suptitle('Do the fitted size laws describe the %d paired events in voxel %s?
              % (paired_top.sum(), TOP_LABEL))
 save(fig, 'pit_histograms', panels)
 
-# --- 4. copula shapes in normal-score space ----------------------------------------
-x_top, y_top = -du[paired_top], -dtau[paired_top]
-zx = ndtri(copulas.pseudo_observations(x_top))
-zy = ndtri(copulas.pseudo_observations(y_top))
-grid = np.linspace(-3.5, 3.5, 181)
-gx, gy = np.meshgrid(grid, grid)
-normal_pdf = stats.norm.pdf(gx) * stats.norm.pdf(gy)
-shape_families = ('gaussian', 'gumbel', 'survival_clayton', 'bb7', 'survival_bb1')
-fig, axes = plt.subplots(2, 3, figsize=(13, 9.2), constrained_layout=True, sharex=True, sharey=True)
-data_hist, _, _ = np.histogram2d(zx, zy, bins=36, range=[[-3.5, 3.5], [-3.5, 3.5]], density=True)
-levels = [0.005, 0.02, 0.05, 0.1, 0.2]
-panels = {}
-for key, ax, family in zip('abcdef', axes.ravel(), ('data',) + shape_families):
-    ax.pcolormesh(np.linspace(-3.5, 3.5, 37), np.linspace(-3.5, 3.5, 37),
-                  np.where(data_hist.T > 0, data_hist.T, np.nan), cmap=BLUE_RAMP,
-                  norm=LogNorm(vmin=1e-3, vmax=0.5))
-    if family == 'data':
-        ax.set_title('data: %d paired events' % len(zx))
-    else:
-        r = cop['results']['cml']['families'][family]
-        density = np.exp(copulas.log_density(family, r['params'], ndtr(gx), ndtr(gy))) * normal_pdf
-        ax.contour(gx, gy, density, levels=levels, colors=SERIES[1], linewidths=1.6)
-        ax.set_title('%s (held-out gain %.0f)' % (FAMILY_LABEL[family], r['held_out_ll']))
-    ax.set_aspect('equal')
-    letter(ax, key)
-    panels[key] = [ax]
-for ax in axes[1]:
-    ax.set_xlabel('PE drop (normal score of rank)')
-for ax in axes[:, 0]:
-    ax.set_ylabel('stress drop (normal score of rank)')
-fig.suptitle('Joint shape of the two drops in voxel %s.  Blue: data.  Orange: fitted model (same density levels '
-             'in every panel).\nUpper right = both drops large.  Gain = held-out ln L over independence.' % TOP_LABEL)
-save(fig, 'copula_shapes', panels)
+# --- 4. copula shapes: drawn by 11c_benchmark_figure.py with ranks within voxel x rate ---------
 
 # --- 5. held-out scores ---------------------------------------------------------------
 families = [f for f in cop['results']['cml']['families'] if f != 'independence']

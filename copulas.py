@@ -333,6 +333,38 @@ def ecdf_transform(train, test):
     return (np.searchsorted(sorted_train, test, side='right') + 0.5) / (len(train) + 1.0)
 
 
+# --- nonparametric benchmark (step 11) ----------------------------------------------
+# gaussian_kde bandwidth factors tried; the kernel shape follows the data's covariance
+KERNEL_BANDWIDTHS = np.geomspace(0.02, 0.6, 18)
+
+
+def kernel_log_density(u_train, v_train, u, v, bandwidth):
+    """Transformation kernel copula: a Gaussian kernel density of the normal
+    scores z = Phi^-1(u), mapped back to the unit square:
+        ln c(u, v) = ln f(z1, z2) - ln phi(z1) - ln phi(z2).
+    It assumes no family shape.  It is a proper density on (0, 1)^2, so its
+    held-out ln L is directly comparable with a copula's; only its margins are
+    approximately (not exactly) uniform."""
+    z_train = ndtri(_clip(np.vstack([u_train, v_train])))
+    z = ndtri(_clip(np.vstack([u, v])))
+    kde = stats.gaussian_kde(z_train, bw_method=bandwidth)
+    return kde.logpdf(z) - stats.norm.logpdf(z).sum(axis=0)
+
+
+def choose_kernel_bandwidth(u, v, groups, bandwidths=KERNEL_BANDWIDTHS):
+    """Bandwidth with the best leave-one-group-out ln L (groups = blocks of
+    whole trajectories, so a trajectory never scores itself).  Flags a choice
+    at the edge of the grid."""
+    scores = np.array([sum(kernel_log_density(u[groups != g], v[groups != g],
+                                              u[groups == g], v[groups == g], h).sum()
+                           for g in np.unique(groups))
+                       for h in bandwidths])
+    best = int(np.argmax(scores))
+    flags = ['bandwidth at the edge of the grid (%.3g)' % bandwidths[best]] \
+        if best in (0, len(bandwidths) - 1) else []
+    return float(bandwidths[best]), scores, flags
+
+
 # --- the contest -------------------------------------------------------------------
 def run_contest(x, y, traj, ifm_pit, families=FAMILIES, n_boot=2000, q_tail=0.05, seed=0):
     """Fit and score every family, by ranks ('cml') and by marginals ('ifm').

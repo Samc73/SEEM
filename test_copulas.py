@@ -281,5 +281,33 @@ for method in ('cml', 'ifm'):
           '%s: best %s held-out gain %.1f, CI [%.1f, %.1f] includes 0'
           % (method, best, rows[best]['held_out_ll'], *rows[best]['held_out_ci']))
 
+print('\n5. kernel copula benchmark (step 11): no clear win on Gumbel data, a clear win when Gumbel is wrong')
+import dependence_law
+
+
+def kernel_minus_gumbel(u_raw, v_raw, traj):
+    """Step 11's procedure: ranks, even/odd split, bandwidth chosen inside training."""
+    even = traj % 2 == 0
+    held = dict(kernel=np.zeros(len(u_raw)), gumbel=np.zeros(len(u_raw)))
+    for train in (even, ~even):
+        u_tr, v_tr = copulas.pseudo_observations(u_raw[train]), copulas.pseudo_observations(v_raw[train])
+        u_te = copulas.ecdf_transform(u_raw[train], u_raw[~train])
+        v_te = copulas.ecdf_transform(v_raw[train], v_raw[~train])
+        h = copulas.choose_kernel_bandwidth(u_tr, v_tr, (traj[train] // 2) % 5)[0]
+        held['kernel'][~train] = copulas.kernel_log_density(u_tr, v_tr, u_te, v_te, h)
+        theta = copulas.fit_family('gumbel', u_tr, v_tr)['params']
+        held['gumbel'][~train] = copulas.log_density('gumbel', theta, u_te, v_te)
+    boot = dependence_law.bootstrap_scores(held, traj, N_BOOT, rng)
+    return dependence_law.compare(held, boot, 'kernel', 'gumbel')
+
+
+for family, params, expect_win in (('gumbel', [3.65], False), ('t', [0.9, 4.0], True)):
+    u, v = sample(family, params, N_PAIRS, rng)      # tau about 0.72 in both, as in cell (18, 11)
+    traj = rng.integers(0, N_TRAJECTORIES, N_PAIRS)
+    r = kernel_minus_gumbel(u, v, traj)
+    ok = r['ci'][0] > 0 if expect_win else r['ci'][0] <= 0
+    check(ok, '%s data: kernel - gumbel %+.1f [%+.1f, %+.1f] (%s)'
+          % (family, r['difference'], *r['ci'], 'should be > 0' if expect_win else 'should not be > 0'))
+
 print('\n%d failure(s)' % len(failures))
 sys.exit(1 if failures else 0)

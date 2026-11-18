@@ -12,11 +12,11 @@ Kendall's τ_K runs from 0.52 to 0.88 across the 119 well-filled voxels. It rise
 
 η = 0.902 + 0.210 u′ + 0.253 τ′ + 0.067 u′τ′ − 0.051 ln(rate/rate_mid),
 
-where u′ and τ′ are the standardised energy and stress. State dependence gains ~20 log-likelihood units per 1,000 held-out events over a single θ. The formula recovers 92–99% of what one θ per voxel (120 parameters) achieves. It falls short at the edges of the visited region (low u with high stress; the lowest-stress row), where the table leads by 1.2 per 1,000 with 80% training data.
+where u′ and τ′ are the standardised energy and stress. State dependence is worth ~20 log-likelihood units per 1,000 held-out events. The formula recovers 92–99% of what one θ per voxel (120 parameters) achieves. With 80% training data the table leads by 1.2 per 1,000 overall; the residual maps place the shortfall at the edges (low u with high stress; the lowest-stress row).
 
 ## Result 2: the copula's shape matters more (steps 11, 11b)
 
-A kernel copula, which has no fixed family shape, beats Gumbel by **+74 per 1,000 events [+60, +88]** in the busiest voxel, (18, 11). That is ~60× the formula's shortfall (one voxel, though, against an all-voxel average).
+A shape-free kernel copula beats Gumbel by **+74 per 1,000 events [+60, +88]** in the busiest voxel, (18, 11). That is ~60× the formula's shortfall (one voxel vs an all-voxel average).
 
 | Voxel (τ_K, events) | Best named family | Kernel − Gumbel | Kernel − best |
 |---|---|---|---|
@@ -29,30 +29,35 @@ A kernel copula, which has no fixed family shape, beats Gumbel by **+74 per 1,00
 All values are per 1,000 events.
 
 - **At high τ_K, Frank (no tail link) matches the kernel in 3 of 3 voxels.** Caveats: 400–600 events each; best family chosen on the same held-out data; sampling-only intervals.
-- **In the busiest voxel, no named family comes close.** Gumbel is already best there, and its misfit is mostly in the bulk of the square (+69 of the 74), not the corners.
-- **At low τ_K, no gain.**
-- **Pooling ranks across cooling rates had added ~25 units of fake large-drop-corner dependence** (+80 → +74). Ranking within voxel × rate removes it.
+- **In the busiest voxel, no named family comes close.** Gumbel is best there; its misfit is mostly in the bulk (+69 of the 74).
+- **At low τ_K, no clear gain** (the interval spans zero; 302 events).
+- **Pooling ranks across cooling rates had added ~25 log-likelihood units of fake dependence** (about 6 per 1,000; +80 → +74 per 1,000 overall), 22 of them in the large-drop corner. Ranking within voxel × rate removes it.
 
 Gumbel also overstates, everywhere, how often both drops are in their largest 5% (+0.065), for formula and table alike.
 
 ## Next steps, in priority order
 
-1. **Copula shape.** Use a family that changes with state (Gumbel → Frank as τ_K rises), plus a more flexible option for the mid-τ_K bulk misfit.2. **Run steps 1–3 in this folder.** A prerequisite for rate-dependent size laws and any link to the ceiling s_c; data present, scripts match.
+1. **Copula shape.** A state-dependent family (Gumbel → Frank as τ_K rises), plus a more flexible option for the mid-τ_K bulk.
+2. **Run steps 1–3 in this folder.** Needed for rate-dependent size laws and any link to the ceiling s_c; data present.
 3. **Rate-dependent size laws.** Sizes shrink with faster cooling; aging events distort the stress law.
-4. **Sample inside SEEM.** This needs 1–3 first; aging and PE-only events need their own treatment.
+4. **Sample inside SEEM.** Needs 1–3 first; aging and PE-only events need their own treatment.
 
 ## Key figures
 
-`voxel_dependence.png`, `dependence_scoreboard.png`, `dependence_tau_residuals.png`, `dependence_tail_residuals.png`, `kernel_benchmark.png` (panel d is slide-ready alone).
+`voxel_dependence.png`, `dependence_scoreboard.png`, `dependence_tau_residuals.png`, `dependence_tail_residuals.png`, `kernel_benchmark.png` (panel d).
 
 ## Likely questions
 
-**Why hold out whole trajectories?** Events within a trajectory are strongly correlated; a random split tests on near-copies of training data.
+**Why hold out whole trajectories?** Events within a trajectory are strongly correlated; a random split would test on near-copies.
 
 **Why rank within voxel × rate?** Fast-cooled drops are smaller on both measures, so ranking rates together creates fake dependence.
 
-**Why trust a 1-per-1,000 gap?** It appears in 47 of 50 random 80/20 splits and in 5-fold scoring. With 50/50 splits it ties, so it is real but small.
+**Why trust a 1-per-1,000 gap?** It holds in 47 of 50 random 80/20 splits and in 5-fold scoring; at 50/50 it ties. Real but small.
 
-**What is the kernel copula?** A smoothed density of the ranks, bandwidth tuned on training data. On true Gumbel data it scores slightly below Gumbel, so a win means the family shape is wrong.
+**What is the kernel copula?** A smoothed density of the ranks. On true Gumbel data it scores slightly below Gumbel, so a win means Gumbel's shape is wrong.
 
-**What is still uncertain?** Whether Frank-at-high-τ_K holds beyond 3 voxels, and what fixes the mid-τ_K bulk. Most intervals are sampling-only, and voxels share trajectories.
+**If Gumbel is the wrong shape, does Result 1 still hold?** The directions do. Regressing the measured τ_K of 577 voxel × rate groups (no copula) gives +0.066 per sd of u, +0.054 per sd of τ and −0.0158 per unit ln(rate). Only the exact η coefficients are Gumbel-specific.
+
+**Why not use the kernel copula in SEEM?** It is another per-voxel empirical object, not a compact law. It is the benchmark a compact family should match.
+
+**What is still uncertain?** Whether Frank-at-high-τ_K holds beyond 3 voxels; what fixes the mid-τ_K bulk. Most intervals are sampling-only.

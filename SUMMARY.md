@@ -41,7 +41,7 @@ Full outline in `NEXT_STEPS.md`.
 2. **Sample inside SEEM with the compact law.** Replace SEEM's lists with draws from the size laws and the Gumbel copula, and check that SEEM reproduces the simulated drops.
 3. **A copula family that changes with state (only if needed).** Switch from Gumbel to Frank where the two drops are most strongly linked, only if the upper-tail misfit matters in SEEM.
 
-Open question: whether Gumbel's misfit along the low-rank edges (where one drop is small) is a truncation artifact or a real population of small stress drops (rerun the cell (18, 11) check at a stress cutoff of 1e-4).
+Settled: Gumbel's misfit along the low-rank edges in cell (18, 11) is not a cutoff artifact. It is unchanged when the stress cutoff is lowered (+51 per 1,000 at 1e-4 vs +52 at 1e-3) and mostly disappears when stress drops below 1e-2 are excluded (+12). So small stress drops (below ~1e-2) behave differently; step 1 handles them.
 
 ## Key figures
 

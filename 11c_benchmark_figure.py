@@ -4,8 +4,11 @@ Input : out/copula_benchmark_rate.json, out/copula_benchmark_rate_events.npz (st
         out/dependence_law.json (measured tau_K of the family-check voxels),
         out/joint_events.npz, out/marginals.json (cell (18, 11)'s paired events, for the shapes)
 Output: figures/kernel_benchmark.png (+ figures/panels/)
-        figures/copula_shapes.png (+ figures/panels/)   data, Gaussian, Gumbel, kernel in cell (18, 11)
+        figures/copula_shapes_rank_{a,b}.png              Gumbel and kernel in cell (18, 11), rank scale
+        figures/exploratory/copula_shapes_normal_score.png   the same two on normal scores
+        figures/copula_shapes.png                          copy of the version named in SHOWN
         figures/exploratory/copula_shapes_6family.png   backup: data + step 7's five families
+        figures/copula_marginals.png                       PE and stress drop CCDFs in cell (18, 11)
 
 kernel_benchmark
 (a-c) held-out ln c_kernel - ln c_model, summed over the held-out events in each
@@ -19,8 +22,16 @@ copula_shapes
       events; every model fitted in-sample on those ranks (kernel bandwidth chosen
       by trajectory blocks, as in step 11b); titles give step 11b's held-out gain
       over independence per 1,000 events.  Replaces step 8's pooled-rank version.
+      Slide figures: no suptitle.  rank_a: step 11b's held-out uniforms as a
+      20 x 20 histogram, model copula density as contours; rank_b: model density
+      as a heat map, held-out uniforms as dots.  Same levels/scale in both panels.
+copula_marginals
+      CCDFs of all drops in the cell (step 6's fit sample) with step 6's TPL, and
+      of the paired events in the slowest and fastest three cooling rates.  Units
+      assume LAMMPS metal units (u in eV/atom; tau = stress[bar] / 1e4, in GPa).
 """
 import json
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -28,6 +39,7 @@ from scipy import stats
 from scipy.special import ndtr, ndtri
 import copulas
 import dependence_law as dl
+import marginals
 import figstyle as fs
 
 N_GRID = 10
@@ -157,11 +169,16 @@ def model_density(name):
     return np.exp(ln_c) * normal_pdf
 
 
-def shapes_figure(names, ncols, figsize, path, with_panels):
-    nrows = int(np.ceil((len(names) + 1) / ncols))
-    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, constrained_layout=True, sharex=True, sharey=True)
-    panels = {}
-    for key, ax, name in zip('abcdef', axes.ravel(), ('data',) + names):
+def gain(name):
+    return 1000 * top['held_out_totals'][name] / top['n']
+
+
+def shapes_figure(names, ncols, figsize, path, with_data=True):
+    shown = (('data',) if with_data else ()) + names
+    nrows = int(np.ceil(len(shown) / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, constrained_layout=True, sharex=True, sharey=True,
+                             squeeze=False)
+    for key, ax, name in zip('abcdef', axes.ravel(), shown):
         ax.pcolormesh(np.linspace(-3.5, 3.5, 37), np.linspace(-3.5, 3.5, 37),
                       np.where(data_hist.T > 0, data_hist.T, np.nan), cmap=fs.BLUE_RAMP,
                       norm=LogNorm(vmin=1e-3, vmax=0.5))
@@ -169,22 +186,106 @@ def shapes_figure(names, ncols, figsize, path, with_panels):
             ax.set_title('data: %d paired events' % len(zx))
         else:
             ax.contour(gx, gy, model_density(name), levels=LEVELS, colors=fs.SERIES[1], linewidths=1.6)
-            ax.set_title('%s: gain %.0f per 1,000' % (FAMILY_LABEL[name],
-                                                      1000 * top['held_out_totals'][name] / top['n']))
+            ax.set_title(('%s: gain %.0f per 1,000' if with_data else '%s (gain %.0f per 1,000)')
+                         % (FAMILY_LABEL[name], gain(name)))
         ax.set_aspect('equal')
         fs.letter(ax, key)
-        panels[key] = [ax]
     for ax in axes[-1]:
         ax.set_xlabel('PE drop (normal score of rank)')
     for ax in axes[:, 0]:
         ax.set_ylabel('stress drop (normal score of rank)')
-    fig.suptitle('Joint shape of the two drops in voxel (%d, %d), ranks within voxel × cooling rate.\n'
-                 'Blue: data.  Orange: fitted model (same density levels in every panel).  Upper right = both drops '
-                 'large.\nGain = held-out ln L over independence per 1,000 events (step 11b).' % tuple(top['cell_uv']),
-                 fontsize=12)
-    fs.save(fig, path, panels if with_panels else None)
+    if with_data:
+        fig.suptitle('Joint shape of the two drops in voxel (%d, %d), ranks within voxel × cooling rate.\n'
+                     'Blue: data.  Orange: fitted model (same density levels in every panel).  Upper right = both '
+                     'drops large.\nGain = held-out ln L over independence per 1,000 events (step 11b).'
+                     % tuple(top['cell_uv']), fontsize=12)
+    fs.save(fig, path)
 
 
-shapes_figure(('gaussian', 'gumbel', 'kernel'), 2, (9.6, 10.4), 'copula_shapes', True)
+# rank scale: step 11b's held-out uniforms (voxel x rate ranks) as data; models as copula densities c(U, V)
+u_ho, v_ho = ev['cell_18_11/u'], ev['cell_18_11/v']
+assert len(u_ho) == top['n']
+N_RANK_BINS = 20
+rank_hist = np.histogram2d(u_ho, v_ho, bins=N_RANK_BINS, range=[[0, 1], [0, 1]], density=True)[0]
+rank_grid = (np.arange(200) + 0.5) / 200
+gu, gv = np.meshgrid(rank_grid, rank_grid)
+RANK_LEVELS = [0.5, 1, 2, 4, 8]                     # copula density, both panels; 1 = independence
+RANK_NORM = LogNorm(vmin=0.1, vmax=20)              # one held-out event in a bin = 0.10
+RANK_CMAP = fs.BLUE_RAMP.with_extremes(under=fs.SURFACE, bad=fs.SURFACE)
+
+
+def copula_density(name):
+    if name == 'kernel':
+        return np.exp(copulas.kernel_log_density(u_all, v_all, gu.ravel(), gv.ravel(), h_all).reshape(gu.shape))
+    return np.exp(copulas.log_density(name, copulas.fit_family(name, u_all, v_all)['params'], gu, gv))
+
+
+def rank_figure(path, style):
+    """style 'a': data histogram + model contours; 'b': model heat map + data as dots."""
+    fig, axes = plt.subplots(1, 2, figsize=(10.4, 4.9), constrained_layout=True, sharex=True, sharey=True)
+    edges = np.linspace(0, 1, N_RANK_BINS + 1)
+    for key, ax, name in zip('ab', axes, ('gumbel', 'kernel')):
+        dens = copula_density(name)
+        if style == 'a':
+            im = ax.pcolormesh(edges, edges, np.where(rank_hist.T > 0, rank_hist.T, np.nan), cmap=RANK_CMAP,
+                               norm=RANK_NORM)
+            cs = ax.contour(gu, gv, dens, levels=RANK_LEVELS, colors=fs.SERIES[1], linewidths=1.6)
+            ax.clabel(cs, fmt='%g', fontsize=10)
+        else:
+            im = ax.pcolormesh(gu, gv, dens, cmap=RANK_CMAP, norm=RANK_NORM, shading='nearest')
+            ax.scatter(u_ho, v_ho, s=3, color=fs.INK, alpha=0.3, lw=0, rasterized=True)
+        ax.set_title('%s (gain %.0f per 1,000)' % (FAMILY_LABEL[name], gain(name)))
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect('equal')
+        ax.set_xticks([0, 0.5, 1]); ax.set_yticks([0, 0.5, 1])
+        ax.set_xlabel('PE-drop rank U')
+        fs.letter(ax, key)
+    axes[0].set_ylabel('stress-drop rank V')
+    if style == 'a':
+        label = 'held-out events per unit area (1 = independence)\norange contours: model copula density'
+    else:
+        label = 'model copula density (1 = independence)\ndots: %d held-out events' % len(u_ho)
+    cb = fig.colorbar(im, ax=list(axes), shrink=0.8, extend='max')
+    cb.set_label(label)
+    fs.save(fig, path)
+
+
+shapes_figure(('gumbel', 'kernel'), 2, (9.6, 5.0), 'exploratory/copula_shapes_normal_score', with_data=False)
+rank_figure('copula_shapes_rank_a', 'a')
+rank_figure('copula_shapes_rank_b', 'b')
+SHOWN = 'exploratory/copula_shapes_normal_score'     # the version copied to copula_shapes.png
+shutil.copyfile('figures/%s.png' % SHOWN, 'figures/copula_shapes.png')
 shapes_figure(('gaussian', 'gumbel', 'survival_clayton', 'bb7', 'survival_bb1'), 3, (13, 9.6),
-              'exploratory/copula_shapes_6family', False)
+              'exploratory/copula_shapes_6family')
+
+
+# --- marginals of cell (18, 11): CCDFs with step 6's TPL, slow vs fast cooling --------------------------
+table = np.load('out/marginal_table.npz')
+thirds = ri // 3                                      # 0 = slowest three of the nine rates, 2 = fastest
+fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.8), constrained_layout=True)
+for ax, key, signed, paired, name, xlabel in (
+        (axes[0], 'pe', du, x, 'PE', 'PE drop −Δu (eV/atom)'),
+        (axes[1], 'stress', dtau, y, 'stress', 'stress drop −Δτ (GPa)')):
+    cut = xmin[key]
+    cut_text = r'$10^{%d}$' % round(np.log10(cut))
+    own = -signed[(events['cell'] == c) & (signed < 0) & (-signed >= cut)]
+    assert len(own) == table[key + '_n'][c]            # exactly step 6's fit sample
+    kappa, s_star = table[key + '_kappa'][c], table[key + '_s_star'][c]
+    for sample, colour, lw, label in (
+            (own, fs.INK_2, 1.4, 'all %s drops in the cell (n %d)' % (name, len(own))),
+            (paired[thirds == 0], fs.SERIES[0], 2, 'paired, slowest 3 cooling rates (n %d)' % (thirds == 0).sum()),
+            (paired[thirds == 2], fs.SERIES[1], 2, 'paired, fastest 3 cooling rates (n %d)' % (thirds == 2).sum())):
+        s = np.sort(sample)
+        ax.step(s, 1 - np.arange(len(s)) / len(s), where='post', color=colour, lw=lw, label=label)
+    s = np.logspace(np.log10(cut), np.log10(own.max()), 300)
+    ax.plot(s, 1 - marginals.cdf(s, kappa, s_star, cut), color=fs.INK, ls='--', lw=1.6,
+            label='step 6 TPL fit to all drops:\nκ %.2f, s* %.2g, xmin %s' % (kappa, s_star, cut_text))
+    ax.axvline(cut, color=fs.INK_2, ls=':', lw=1.2)
+    ax.text(cut * 1.15, 1.5, 'paired-event cutoff %s' % cut_text, fontsize=10, color=fs.INK_2, va='top')
+    ratio = np.median(paired[thirds == 2]) / np.median(paired[thirds == 0])
+    ax.set_title('%s drop: median fast / slow = %.2f' % (name, ratio))
+    ax.set_xscale('log'); ax.set_yscale('log'); ax.set_ylim(1e-4, 2)
+    ax.set_xlabel(xlabel)
+    ax.legend(loc='lower left')
+axes[0].set_ylabel('P(drop ≥ s), voxel (%d, %d)' % tuple(top['cell_uv']))
+fs.letter(axes[0], 'a'); fs.letter(axes[1], 'b')
+fs.save(fig, 'copula_marginals')

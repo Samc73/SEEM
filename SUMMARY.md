@@ -35,10 +35,13 @@ Across all voxels, Gumbel overstates how often both drops are in their largest 5
 
 ## Next steps, in priority order
 
-1. **Copula shape.** A state-dependent family (Gumbel → Frank as τ_K rises), plus a fix for the mid-τ_K upper tail.
-2. **Run steps 1–3 in this folder.** Needed for rate-dependent size laws and any link to the ceiling s_c; data present.
-3. **Rate-dependent size laws.** Sizes shrink with faster cooling; aging events distort the stress law.
-4. **Sample inside SEEM.** Needs 1–3 first; aging and PE-only events need their own treatment.
+Full outline in `NEXT_STEPS.md`.
+
+1. **Size laws that depend on cooling rate.** Run steps 1–3 in this folder, add cooling rate to the size laws, and decide how to treat small stress drops, where most of Gumbel's misfit came from.
+2. **Sample inside SEEM with the compact law.** Replace SEEM's lists with draws from the size laws and the Gumbel copula, and check that SEEM reproduces the simulated drops.
+3. **A copula family that changes with state (only if needed).** Switch from Gumbel to Frank where the two drops are most strongly linked, only if the upper-tail misfit matters in SEEM.
+
+Open question: whether Gumbel's misfit along the low-rank edges (where one drop is small) is a truncation artifact or a real population of small stress drops (rerun the cell (18, 11) check at a stress cutoff of 1e-4).
 
 ## Key figures
 

@@ -6,7 +6,7 @@ Input : out/copula_benchmark_rate.json, out/copula_benchmark_rate_events.npz (st
 Output: figures/kernel_benchmark.png (+ figures/panels/)
         figures/copula_shapes_rank_{a,b}.png              Gumbel and kernel in cell (18, 11), rank scale
         figures/exploratory/copula_shapes_normal_score.png   the same two on normal scores
-        figures/copula_shapes.png                          copy of the version named in SHOWN
+        figures/copula_shapes.png                          Gumbel and kernel in raw drop sizes (log axes)
         figures/exploratory/copula_shapes_6family.png   backup: data + step 7's five families
         figures/copula_marginals.png                       PE and stress drop CCDFs in cell (18, 11)
 
@@ -31,7 +31,6 @@ copula_marginals
       assume LAMMPS metal units (u in eV/atom; tau = stress[bar] / 1e4, in GPa).
 """
 import json
-import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -252,8 +251,55 @@ def rank_figure(path, style):
 shapes_figure(('gumbel', 'kernel'), 2, (9.6, 5.0), 'exploratory/copula_shapes_normal_score', with_data=False)
 rank_figure('copula_shapes_rank_a', 'a')
 rank_figure('copula_shapes_rank_b', 'b')
-SHOWN = 'exploratory/copula_shapes_normal_score'     # the version copied to copula_shapes.png
-shutil.copyfile('figures/%s.png' % SHOWN, 'figures/copula_shapes.png')
+
+
+# raw units: density of (log10 PE drop, log10 stress drop) = c(F(a), G(b)) f(a) g(b), with F, f (and G, g) the
+# voxel's empirical marginal of the log drop, smoothed by a Gaussian KDE so the density is continuous.
+# shortcut: the copula was fitted on voxel x rate ranks but is mapped through the voxel's pooled marginals.
+def smoothed_marginal(sample, at):
+    kde = stats.gaussian_kde(sample)
+    h = np.sqrt(kde.covariance[0, 0])
+    z = (at[:, None] - sample[None, :]) / h
+    return np.clip(ndtr(z).mean(1), 1e-9, 1 - 1e-9), kde(at)
+
+
+lx, ly = np.log10(x), np.log10(y)
+a_grid = np.linspace(np.log10(xmin['pe']), lx.max() + 0.2, 220)
+b_grid = np.linspace(np.log10(xmin['stress']), ly.max() + 0.2, 220)
+F, f = smoothed_marginal(lx, a_grid)
+G, g = smoothed_marginal(ly, b_grid)
+FU, GV = np.meshgrid(F, G)
+RAW_LEVELS = [0.03, 0.1, 0.3, 1]                     # per decade², both panels
+RAW_NORM = LogNorm(vmin=0.02, vmax=3)
+
+
+def raw_figure():
+    a_edges = np.linspace(a_grid[0], a_grid[-1], 31)
+    b_edges = np.linspace(b_grid[0], b_grid[-1], 31)
+    hist = np.histogram2d(lx, ly, bins=[a_edges, b_edges], density=True)[0]
+    fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.9), constrained_layout=True, sharex=True, sharey=True)
+    for key, ax, name in zip('ab', axes, ('gumbel', 'kernel')):
+        if name == 'kernel':
+            ln_c = copulas.kernel_log_density(u_all, v_all, FU.ravel(), GV.ravel(), h_all).reshape(FU.shape)
+        else:
+            ln_c = copulas.log_density(name, copulas.fit_family(name, u_all, v_all)['params'], FU, GV)
+        dens = np.exp(ln_c) * f[None, :] * g[:, None]
+        print('%s: max raw density %.2f per decade²' % (name, dens.max()))
+        im = ax.pcolormesh(10 ** a_edges, 10 ** b_edges, np.where(hist.T > 0, hist.T, np.nan), cmap=RANK_CMAP,
+                           norm=RAW_NORM)
+        cs = ax.contour(10 ** a_grid, 10 ** b_grid, dens, levels=RAW_LEVELS, colors=fs.SERIES[1], linewidths=1.6)
+        ax.clabel(cs, fmt='%g', fontsize=10)
+        ax.set_xscale('log'); ax.set_yscale('log')
+        ax.set_title(FAMILY_LABEL[name] if name == 'kernel' else 'Gumbel')
+        ax.set_xlabel('PE drop −Δu (eV/atom)')
+        fs.letter(ax, key)
+    axes[0].set_ylabel('stress drop −Δτ (GPa)')
+    cb = fig.colorbar(im, ax=list(axes), shrink=0.8, extend='both')
+    cb.set_label('%d paired events, density per decade²\norange contours: model, same units' % len(x))
+    fs.save(fig, 'copula_shapes')
+
+
+raw_figure()
 shapes_figure(('gaussian', 'gumbel', 'survival_clayton', 'bb7', 'survival_bb1'), 3, (13, 9.6),
               'exploratory/copula_shapes_6family')
 

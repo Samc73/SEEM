@@ -282,7 +282,13 @@ def raw_figure():
         if name == 'kernel':
             ln_c = copulas.kernel_log_density(u_all, v_all, FU.ravel(), GV.ravel(), h_all).reshape(FU.shape)
         else:
-            ln_c = copulas.log_density(name, copulas.fit_family(name, u_all, v_all)['params'], FU, GV)
+            params = copulas.fit_family(name, u_all, v_all)['params']
+            ln_c = copulas.log_density(name, params, FU, GV)
+            theta = float(np.ravel(params)[0])
+            ax.text(0.03, 0.97,'$C(u,v)=\\exp\\{-[(-\\ln u)^{\\theta}+(-\\ln v)^{\\theta}]^{1/\\theta}\\}$\n'
+                    'fitted θ = %.2f  (Kendall τ$_K$ = 1 − 1/θ = %.2f)' % (theta, 1 - 1 / theta),
+                    transform=ax.transAxes, ha='left', va='top', fontsize=10.5, color=fs.INK,
+                    bbox=dict(boxstyle='round,pad=0.4', fc=fs.SURFACE, ec=fs.GRID))
         dens = np.exp(ln_c) * f[None, :] * g[:, None]
         print('%s: max raw density %.2f per decade²' % (name, dens.max()))
         im = ax.pcolormesh(10 ** a_edges, 10 ** b_edges, np.where(hist.T > 0, hist.T, np.nan), cmap=RANK_CMAP,

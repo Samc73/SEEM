@@ -285,9 +285,10 @@ def raw_figure():
             params = copulas.fit_family(name, u_all, v_all)['params']
             ln_c = copulas.log_density(name, params, FU, GV)
             theta = float(np.ravel(params)[0])
-            ax.text(0.03, 0.97,'$C(u,v)=\\exp\\{-[(-\\ln u)^{\\theta}+(-\\ln v)^{\\theta}]^{1/\\theta}\\}$\n'
-                    'fitted θ = %.2f  (Kendall τ$_K$ = 1 − 1/θ = %.2f)' % (theta, 1 - 1 / theta),
-                    transform=ax.transAxes, ha='left', va='top', fontsize=10.5, color=fs.INK,
+            ax.text(0.02, 0.98, '$C(U,V)=\\exp\\{-[(-\\ln U)^{\\theta}+(-\\ln V)^{\\theta}]^{1/\\theta}\\}$\n'
+                    'U, V = ranks of the PE and stress drops\n'
+                    'fitted θ = %.2f  (τ$_K$ = %.2f)' % (theta, 1 - 1 / theta),
+                    transform=ax.transAxes, ha='left', va='top', fontsize=10, color=fs.INK,
                     bbox=dict(boxstyle='round,pad=0.4', fc=fs.SURFACE, ec=fs.GRID))
         dens = np.exp(ln_c) * f[None, :] * g[:, None]
         print('%s: max raw density %.2f per decade²' % (name, dens.max()))
@@ -297,9 +298,9 @@ def raw_figure():
         ax.clabel(cs, fmt='%g', fontsize=10)
         ax.set_xscale('log'); ax.set_yscale('log')
         ax.set_title(FAMILY_LABEL[name] if name == 'kernel' else 'Gumbel')
-        ax.set_xlabel('PE drop −Δu (eV/atom)')
+        ax.set_xlabel('PE drop −Δu')
         fs.letter(ax, key)
-    axes[0].set_ylabel('stress drop −Δτ (GPa)')
+    axes[0].set_ylabel('stress drop −Δτ')
     cb = fig.colorbar(im, ax=list(axes), shrink=0.8, extend='both')
     cb.set_label('%d paired events, density per decade²\norange contours: model, same units' % len(x))
     fs.save(fig, 'copula_shapes')
@@ -315,8 +316,8 @@ table = np.load('out/marginal_table.npz')
 thirds = ri // 3                                      # 0 = slowest three of the nine rates, 2 = fastest
 fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.8), constrained_layout=True)
 for ax, key, signed, paired, name, xlabel in (
-        (axes[0], 'pe', du, x, 'PE', 'PE drop −Δu (eV/atom)'),
-        (axes[1], 'stress', dtau, y, 'stress', 'stress drop −Δτ (GPa)')):
+        (axes[0], 'pe', du, x, 'PE', 'PE drop −Δu'),
+        (axes[1], 'stress', dtau, y, 'stress', 'stress drop −Δτ')):
     cut = xmin[key]
     cut_text = r'$10^{%d}$' % round(np.log10(cut))
     own = -signed[(events['cell'] == c) & (signed < 0) & (-signed >= cut)]
@@ -333,6 +334,10 @@ for ax, key, signed, paired, name, xlabel in (
             label='step 6 TPL fit to all drops:\nκ %.2f, s* %.2g, xmin %s' % (kappa, s_star, cut_text))
     ax.axvline(cut, color=fs.INK_2, ls=':', lw=1.2)
     ax.text(cut * 1.15, 1.5, 'paired-event cutoff %s' % cut_text, fontsize=10, color=fs.INK_2, va='top')
+    ax.text(0.42, 0.62, '$p(s) \\propto s^{-\\kappa}\\, e^{-s/s^*}$,  $s \\geq s_{min}$\n'
+            'κ = %.2f,  s* = %.2g,  s$_{min}$ = %s\ndashed curve: CCDF of this density' % (kappa, s_star, cut_text),
+            transform=ax.transAxes, ha='center', va='center', fontsize=10, color=fs.INK,
+            bbox=dict(boxstyle='round,pad=0.4', fc=fs.SURFACE, ec=fs.GRID))
     ratio = np.median(paired[thirds == 2]) / np.median(paired[thirds == 0])
     ax.set_title('%s drop: median fast / slow = %.2f' % (name, ratio))
     ax.set_xscale('log'); ax.set_yscale('log'); ax.set_ylim(1e-4, 2)
